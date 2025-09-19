@@ -1,7 +1,9 @@
 import { createBrowserRouter } from "react-router-dom";
-import { RootLayout } from "../components/RootLayout";
+import { RootLayout } from "../shared/components/RootLayout";
 import { MainPage } from "../pages/Main/MainPage";
 import { Login } from "../pages/Login/LoginPage";
+import { ProtectedRoute } from "../shared/ProtectedRoute";
+import RegistrationMenu from "../pages/Registration/RegistrationMenu";
 
 export const router = createBrowserRouter([
   {
@@ -13,8 +15,16 @@ export const router = createBrowserRouter([
         element: <Login />,
       },
       {
+        path: "registration",
+        element: <RegistrationMenu />,
+      },
+      {
         path: "/",
-        element: <MainPage />,
+        element: (
+          <ProtectedRoute roles={["admin", "participant"]}>
+            <MainPage />
+          </ProtectedRoute>
+        ),
       },
     ],
     errorElement: <div>Страница не найдена</div>,

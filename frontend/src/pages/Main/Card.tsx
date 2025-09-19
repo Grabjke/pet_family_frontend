@@ -4,14 +4,19 @@ import {
   CardContent,
   Typography,
   Button,
-  Chip,
   Box,
 } from "@mui/material";
 import { Pets } from "@mui/icons-material";
 import StarIcon from "@mui/icons-material/Star";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
+import type { Pet } from "../../modules/pets/petsSlice";
+import { helpStatusMessages } from "../../utils/helpStatusMessages";
 
-export function CardElement() {
+interface CardElementProps {
+  cardData: Pet;
+}
+export function CardElement({ cardData }: CardElementProps) {
   return (
     <section>
       <Card
@@ -40,7 +45,7 @@ export function CardElement() {
               component="div"
               sx={{ fontWeight: "bold" }}
             >
-              Барсик, 1 год 7 месяцев
+              {cardData.name}
             </Typography>
           </Box>
 
@@ -48,36 +53,20 @@ export function CardElement() {
             <Box component="span" sx={{ fontWeight: "bold" }}>
               Вакцинация:
             </Box>{" "}
-            <CheckCircleIcon />
+            {cardData.isVaccinated ? <CheckCircleIcon /> : <CancelIcon />}
           </Typography>
           <Typography variant="body2" color="text.secondary" paragraph>
             <Box component="span" sx={{ fontWeight: "bold" }}>
-              Отношение к людям:
+              Город:
             </Box>{" "}
-            Хорошее
+            {cardData.city}
           </Typography>
           <Typography variant="body2" color="text.secondary" paragraph>
             <Box component="span" sx={{ fontWeight: "bold" }}>
-              Отношение к другим животным:
+              Статус:
             </Box>{" "}
-            Хорошее
+            {helpStatusMessages[cardData.helpStatus]}
           </Typography>
-
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 2 }}>
-            <Chip
-              label="#трехцветка"
-              size="small"
-              variant="outlined"
-              sx={{ fontSize: "0.7rem" }}
-            />
-
-            <Chip
-              label="#домашняя_передержка"
-              size="small"
-              variant="outlined"
-              sx={{ fontSize: "0.7rem" }}
-            />
-          </Box>
 
           <Box sx={{ display: "flex", gap: 1 }}>
             <Button
