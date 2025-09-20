@@ -1,11 +1,28 @@
-import axios from "axios";
+import axios, { type AxiosResponse } from "axios";
+import type { Envelope } from "../shared/models/Envelope";
+import { api } from "./api";
+import type { LoginResponse } from "../shared/models/LoginResponse";
 
-const API_URL: string = "https://localhost:7000/api/";
+const API_URL = "https://localhost:7000/api";
 
-export async function getUsers() {
-  const response = await axios.get<string[]>(API_URL + "users");
+export class AccountsService {
+  static async refresh() {
+    return await axios.post<Envelope<LoginResponse>>(
+      API_URL + "account/refresh",
+      {},
+      {
+        withCredentials: true,
+      }
+    );
+  }
 
-  // await new Promise((resolve) => setTimeout(resolve, 2000));
-
-  return response.data;
+  static async login(
+    email: string,
+    password: string
+  ): Promise<AxiosResponse<Envelope<LoginResponse>>> {
+    return await api.post<Envelope<LoginResponse>>("account/login", {
+      email,
+      password,
+    });
+  }
 }

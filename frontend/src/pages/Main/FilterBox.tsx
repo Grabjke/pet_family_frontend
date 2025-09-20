@@ -8,8 +8,14 @@ import {
   Typography,
   Divider,
   Box,
+  InputAdornment,
+  CircularProgress,
 } from "@mui/material";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
+import { useGetSpeciesQuery } from "../../modules/species/api";
+import LockIcon from "@mui/icons-material/Lock";
+import { useGetBreedsQuery } from "../../modules/breed/api";
+import { useEffect } from "react";
 
 type FilterFields = {
   name?: string;
@@ -22,42 +28,31 @@ type FilterFields = {
   city?: string;
   street?: string;
   zipCode?: string;
-  weight?: number;
-  height?: number;
+  weight?: number | "";
+  height?: number | "";
   castration?: boolean;
   isVaccinated?: boolean;
-  helpStatus?: string;
+  helpStatus?: number | "";
   sortBy?: string;
   sortDirection?: string;
 };
 
-export function FilterBox() {
-  const speciesOptions = [
-    { value: "", label: "Не выбрано" },
-    { value: "1", label: "Кошки" },
-    { value: "2", label: "Собаки" },
-    { value: "3", label: "Грызуны" },
-  ];
+interface FilterBoxProps {
+  onFilterChange: (filters: FilterFields) => void;
+}
 
-  const breedOptions = [
-    { value: "", label: "Не выбрано" },
-    { value: "1", label: "Персидская" },
-    { value: "2", label: "Такса" },
-    { value: "3", label: "Сиамская" },
-  ];
-
-  const helpStatusOptions = [
-    { value: "", label: "Не выбрано" },
-    { value: "1", label: "Нужна помощь" },
-    { value: "2", label: "В процессе" },
-    { value: "3", label: "Помощь оказана" },
-  ];
+export function FilterBox({ onFilterChange }: FilterBoxProps) {
+  const { data: speciesData } = useGetSpeciesQuery({
+    page: 1,
+    pageSize: 100,
+  });
 
   const {
+    control,
     register,
     handleSubmit,
-    control,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<FilterFields>({
     defaultValues: {
@@ -71,18 +66,66 @@ export function FilterBox() {
       city: "",
       street: "",
       zipCode: "",
-      weight: undefined,
-      height: undefined,
+      weight: "",
+      height: "",
       castration: false,
       isVaccinated: false,
       helpStatus: "",
-      sortBy: "name",
-      sortDirection: "asc",
+      sortBy: "",
+      sortDirection: "",
     },
   });
 
+  const selectedSpeciesId = useWatch({ control, name: "speciesId" });
+
+  const {
+    data: breedData,
+    isLoading: isBreedsLoading,
+    isFetching: isBreedsFetching,
+  } = useGetBreedsQuery(
+    {
+      id: selectedSpeciesId || "",
+      page: 1,
+      pageSize: 100,
+    },
+    { skip: !selectedSpeciesId }
+  );
+
+  const species = speciesData?.result.items || [];
+  const breeds = breedData?.result.items || [];
+
+  useEffect(() => {
+    if (selectedSpeciesId) {
+      setValue("breedId", "");
+    }
+  }, [selectedSpeciesId, setValue]);
+
+  const speciesOptions = [
+    { value: "", label: "Не выбрано" },
+    ...species.map((kind) => ({
+      value: kind.id,
+      label: kind.title,
+    })),
+  ];
+
+  const breedOptions = [
+    { value: "", label: "Не выбрано" },
+    ...breeds.map((breed) => ({
+      value: breed.id,
+      label: breed.name,
+    })),
+  ];
+
+  const helpStatusOptions = [
+    { value: "", label: "Не выбрано" },
+    { value: 1, label: "Нужна помощь" },
+    { value: 2, label: "Ищет дом" },
+    { value: 3, label: "Нашел дом" },
+  ];
+
   const onSubmit = (data: FilterFields) => {
     console.log("Filter data:", data);
+    onFilterChange(data);
   };
 
   const handleReset = () => {
@@ -97,13 +140,13 @@ export function FilterBox() {
       city: "",
       street: "",
       zipCode: "",
-      weight: undefined,
-      height: undefined,
+      weight: "",
+      height: "",
       castration: false,
       isVaccinated: false,
       helpStatus: "",
-      sortBy: "name",
-      sortDirection: "asc",
+      sortBy: "",
+      sortDirection: "",
     });
   };
 
@@ -117,9 +160,7 @@ export function FilterBox() {
         onSubmit={handleSubmit(onSubmit)}
         className="w-full flex-1 flex flex-col"
       >
-        {/* Основной контент с прокруткой */}
         <div className="flex-1 overflow-y-auto pr-2 pb-4">
-          {/* Поиск по имени */}
           <Box>
             <Typography variant="subtitle2" className="mb-3 font-medium">
               Поиск по имени
@@ -138,7 +179,6 @@ export function FilterBox() {
 
           <Divider sx={{ my: 2 }} />
 
-          {/* Сортировка */}
           <Box className="space-y-4">
             <Typography variant="subtitle2" className="font-medium">
               Сортировка
@@ -158,10 +198,16 @@ export function FilterBox() {
                   sx={{ mb: 2 }}
                 >
                   <MenuItem value="name">Имени</MenuItem>
-                  <MenuItem value="species">Виду</MenuItem>
-                  <MenuItem value="breed">Породе</MenuItem>
-                  <MenuItem value="weight">Весy</MenuItem>
-                  <MenuItem value="height">Росту</MenuItem>
+                  <MenuItem value="description">Описание</MenuItem>
+                  <MenuItem value="colour">Цвету</MenuItem>
+                  <MenuItem value="country">Стране</MenuItem>
+                  <MenuItem value="city">Городу</MenuItem>
+                  <MenuItem value="street">Улице</MenuItem>
+                  <MenuItem value="castration">
+                    Кастрирован/стерилизована
+                  </MenuItem>
+                  <MenuItem value="is_vaccinated">Вакцинирован</MenuItem>
+                  <MenuItem value="help_status">Статус помощи</MenuItem>
                 </TextField>
               )}
             />
@@ -187,7 +233,6 @@ export function FilterBox() {
 
           <Divider sx={{ my: 2 }} />
 
-          {/* Вид и порода */}
           <Box className="space-y-4">
             <Typography variant="subtitle2" className="font-medium">
               Животное
@@ -218,23 +263,55 @@ export function FilterBox() {
             <Controller
               name="breedId"
               control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  select
-                  label="Порода"
-                  fullWidth
-                  size="small"
-                  variant="outlined"
-                  sx={{ mb: 2 }}
-                >
-                  {breedOptions.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              )}
+              render={({ field }) => {
+                const isSpeciesSelected = !!selectedSpeciesId;
+                const isLoadingBreeds = isBreedsLoading || isBreedsFetching;
+
+                return (
+                  <TextField
+                    {...field}
+                    select
+                    label="Порода"
+                    fullWidth
+                    size="small"
+                    variant="outlined"
+                    sx={{ mb: 2 }}
+                    disabled={!isSpeciesSelected || isLoadingBreeds}
+                    InputProps={{
+                      ...(!isSpeciesSelected && {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <LockIcon fontSize="small" color="disabled" />
+                          </InputAdornment>
+                        ),
+                      }),
+                      ...(isLoadingBreeds && {
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <CircularProgress size={20} />
+                          </InputAdornment>
+                        ),
+                      }),
+                    }}
+                  >
+                    {!isSpeciesSelected ? (
+                      <MenuItem value="" disabled>
+                        Сначала выберите вид животного
+                      </MenuItem>
+                    ) : isLoadingBreeds ? (
+                      <MenuItem value="" disabled>
+                        Загрузка пород...
+                      </MenuItem>
+                    ) : (
+                      breedOptions.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))
+                    )}
+                  </TextField>
+                );
+              }}
             />
 
             <Controller
@@ -262,24 +339,44 @@ export function FilterBox() {
                 </TextField>
               )}
             />
-
-            <Box>
-              <FormControlLabel
-                control={<Checkbox size="small" {...register("castration")} />}
-                label="Кастрирован/Стерилизована"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox size="small" {...register("isVaccinated")} />
-                }
-                label="Вакцинирован"
-              />
-            </Box>
+          </Box>
+          <Box>
+            <Controller
+              name="castration"
+              control={control}
+              render={({ field }) => (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                    />
+                  }
+                  label="Кастрирован/Стерилизована"
+                />
+              )}
+            />
+            <Controller
+              name="isVaccinated"
+              control={control}
+              render={({ field }) => (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                    />
+                  }
+                  label="Вакцинирован"
+                />
+              )}
+            />
           </Box>
 
           <Divider sx={{ my: 2 }} />
 
-          {/* Внешний вид */}
           <Box className="space-y-4">
             <Typography variant="subtitle2" className="font-medium">
               Внешний вид
@@ -399,7 +496,6 @@ export function FilterBox() {
           </Box>
         </div>
 
-        {/* Кнопки, прижатые к низу */}
         <Box className="bg-white pt-4 border-t border-gray-200 -mx-6 px-6 mt-auto">
           <Box className="flex flex-col gap-3">
             <Button

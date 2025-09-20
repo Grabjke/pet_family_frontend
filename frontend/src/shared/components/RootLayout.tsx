@@ -3,6 +3,8 @@ import { Header } from "./Header";
 import { ContentBlock } from "./ContentBlock";
 import { Footer } from "./Footer";
 import { Menu } from "./Menu";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export type Props = {
   children: React.ReactNode;
@@ -16,6 +18,7 @@ export function RootLayout() {
         <Menu />
         <ContentBlock>
           <Outlet />
+          <ToastContainer />
         </ContentBlock>
       </div>
       <Footer />
