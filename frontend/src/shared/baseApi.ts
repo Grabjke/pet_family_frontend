@@ -5,7 +5,7 @@ import { authActions } from "../modules/auth/authSlice";
 import type { AppState } from "./redux";
 import { Mutex } from "async-mutex";
 
-const BASE_URL = "http://localhost:8080/api";
+const BASE_URL = "https://localhost:7000/api";
 
 export const baseQuery = fetchBaseQuery({
   baseUrl: BASE_URL,
@@ -26,7 +26,7 @@ const mutex = new Mutex();
 const baseQueryWithRefresh: typeof baseQuery = async (
   args,
   api,
-  extraOptions
+  extraOptions,
 ) => {
   await mutex.waitForUnlock();
   let result = await baseQuery(args, api, extraOptions);
@@ -42,7 +42,7 @@ const baseQueryWithRefresh: typeof baseQuery = async (
             method: "POST",
           },
           api,
-          extraOptions
+          extraOptions,
         );
 
         if (authResponse.data) {
@@ -54,8 +54,13 @@ const baseQueryWithRefresh: typeof baseQuery = async (
                 accessToken: data.result.accessToken,
                 userId: data.result.userId,
                 roles: data.result.roles,
-              })
+              }),
             );
+
+            // Повторяем изначальный запрос уже с новым access-токеном
+            result = await baseQuery(args, api, extraOptions);
+          } else {
+            api.dispatch(authActions.logout());
           }
         } else {
           api.dispatch(authActions.logout());

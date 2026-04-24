@@ -23,22 +23,23 @@ export function Menu() {
           Главная
         </NavLink>
         <NavLink
-          to="/asd"
+          to="/help"
           className={({ isActive }) =>
-            `text-black no-underline text-lg transition-all pb-1 border-b-2 px-3 ${
+            `flex items-center text-black no-underline text-lg transition-all pb-1 border-b-2 px-3 ${
               isActive
                 ? "font-semibold border-orange-500"
                 : "font-normal border-transparent hover:border-orange-300"
             }`
           }
         >
-          <EmojiPeopleIcon className="mr-1 !text-xl" />О волонтере
+          <SavingsIcon className="mr-1 !text-xl" />
+          Помочь
         </NavLink>
 
         <NavLink
           to="/favorites"
           className={({ isActive }) =>
-            `flex items-center text-black no-underline text-lg transition-all pb-1 border-b-2 px-2 ${
+            `text-black no-underline text-lg transition-all pb-1 border-b-2 px-2 ${
               isActive
                 ? "font-semibold border-orange-500"
                 : "font-normal border-transparent hover:border-orange-300"
@@ -49,7 +50,7 @@ export function Menu() {
           Избранное
         </NavLink>
         <NavLink
-          to="/asd"
+          to="/volunteers"
           className={({ isActive }) =>
             `flex items-center text-black no-underline text-lg transition-all pb-1 border-b-2 px-2 ${
               isActive
@@ -58,8 +59,7 @@ export function Menu() {
             }`
           }
         >
-          <SavingsIcon className="mr-1 !text-xl" />
-          Помочь
+          <EmojiPeopleIcon className="mr-1 !text-xl" />Волонтеры
         </NavLink>
       </Box>
     </Box>

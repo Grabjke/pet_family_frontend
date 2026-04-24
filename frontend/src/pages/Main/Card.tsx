@@ -12,11 +12,18 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import type { Pet } from "../../modules/pets/petsSlice";
 import { helpStatusMessages } from "../../utils/helpStatusMessages";
+import { useNavigate } from "react-router-dom";
 
 interface CardElementProps {
   cardData: Pet;
 }
 export function CardElement({ cardData }: CardElementProps) {
+  const navigate = useNavigate();
+
+  const handleCardClick = () => {
+    navigate(`/pets/${cardData.id}`);
+  };
+
   return (
     <section>
       <Card
@@ -29,7 +36,9 @@ export function CardElement({ cardData }: CardElementProps) {
             transform: "translateY(-4px)",
             boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
           },
+          cursor: "pointer",
         }}
+        onClick={handleCardClick}
       >
         <CardMedia
           sx={{ height: 200 }}
@@ -89,6 +98,9 @@ export function CardElement({ cardData }: CardElementProps) {
                 minWidth: "auto",
                 borderRadius: 2,
                 padding: "6px 8px",
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
               }}
             >
               <StarIcon />

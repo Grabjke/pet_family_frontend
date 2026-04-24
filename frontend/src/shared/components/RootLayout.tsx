@@ -14,7 +14,7 @@ export function RootLayout() {
   return (
     <div className="h-screen flex flex-col">
       <Header />
-      <div className="flex flex-col h-full px-2 sm:px-8 py-2 sm:py-5">
+      <div className="flex flex-col flex-1 px-2 sm:px-8 py-2 sm:py-5">
         <Menu />
         <ContentBlock>
           <Outlet />

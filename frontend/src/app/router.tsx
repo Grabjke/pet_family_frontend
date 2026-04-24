@@ -4,6 +4,10 @@ import { MainPage } from "../pages/Main/MainPage";
 import { Login } from "../pages/Login/LoginPage";
 import { ProtectedRoute } from "../shared/ProtectedRoute";
 import RegistrationMenu from "../pages/Registration/RegistrationMenu";
+import { PetDetailPage } from "../pages/PetDetail/PetDetailPage";
+import { HelpPage } from "../pages/Help/HelpPage";
+import { VolunteersPage } from "../pages/Volunteers/VolunteersPage";
+import { VolunteerDetailPage } from "../pages/Volunteers/VolunteerDetailPage";
 
 export const router = createBrowserRouter([
   {
@@ -25,6 +29,26 @@ export const router = createBrowserRouter([
             <MainPage />
           </ProtectedRoute>
         ),
+      },
+      {
+        path: "pets/:petId",
+        element: (
+          <ProtectedRoute roles={["admin", "participant"]}>
+            <PetDetailPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "help",
+        element: <HelpPage />,
+      },
+      {
+        path: "volunteers",
+        element: <VolunteersPage />,
+      },
+      {
+        path: "volunteers/:volunteerId",
+        element: <VolunteerDetailPage />,
       },
     ],
     errorElement: <div>Страница не найдена</div>,
