@@ -5,11 +5,16 @@ import {
   Typography,
   Button,
   Box,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import { Person, Email, Phone } from "@mui/icons-material";
 import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import type { Volunteer } from "../../modules/volunteers/volunteersSlice";
 import { useNavigate } from "react-router-dom";
+import { useFavorites } from "../../shared/hooks/useFavorites";
+import { toast } from "react-toastify";
 
 interface VolunteerCardProps {
   volunteerData: Volunteer;
@@ -17,9 +22,28 @@ interface VolunteerCardProps {
 
 export function VolunteerCard({ volunteerData }: VolunteerCardProps) {
   const navigate = useNavigate();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const handleCardClick = () => {
     navigate(`/volunteers/${volunteerData.id}`);
+  };
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const isAdded = toggleFavorite({
+      id: volunteerData.id,
+      type: "volunteer",
+      name: [volunteerData.name, volunteerData.surName, volunteerData.patronymic]
+        .filter(Boolean)
+        .join(" "),
+      imageUrl: "/public/Manya-690x460-406558120.jpg",
+    });
+
+    if (isAdded) {
+      toast.success("Добавлено в избранное");
+    } else {
+      toast.info("Удалено из избранного");
+    }
   };
 
   const fullName = [
@@ -97,20 +121,20 @@ export function VolunteerCard({ volunteerData }: VolunteerCardProps) {
               Подробнее
             </Button>
 
-            <Button
-              variant="outlined"
-              size="small"
-              sx={{
-                minWidth: "auto",
-                borderRadius: 2,
-                padding: "6px 8px",
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-            >
-              <StarIcon />
-            </Button>
+            <Tooltip title={isFavorite(volunteerData.id) ? "Удалить из избранного" : "Добавить в избранное"}>
+              <IconButton
+                size="small"
+                sx={{
+                  minWidth: "auto",
+                  borderRadius: 2,
+                  padding: "6px 8px",
+                  color: isFavorite(volunteerData.id) ? "warning" : "default",
+                }}
+                onClick={handleFavoriteClick}
+              >
+                {isFavorite(volunteerData.id) ? <StarIcon /> : <StarBorderIcon />}
+              </IconButton>
+            </Tooltip>
           </Box>
         </CardContent>
       </Card>

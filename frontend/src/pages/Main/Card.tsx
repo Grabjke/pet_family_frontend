@@ -5,23 +5,46 @@ import {
   Typography,
   Button,
   Box,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import { Pets } from "@mui/icons-material";
 import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import type { Pet } from "../../modules/pets/petsSlice";
 import { helpStatusMessages } from "../../utils/helpStatusMessages";
 import { useNavigate } from "react-router-dom";
+import { useFavorites } from "../../shared/hooks/useFavorites";
+import { toast } from "react-toastify";
 
 interface CardElementProps {
   cardData: Pet;
 }
+
 export function CardElement({ cardData }: CardElementProps) {
   const navigate = useNavigate();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const handleCardClick = () => {
     navigate(`/pets/${cardData.id}`);
+  };
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const isAdded = toggleFavorite({
+      id: cardData.id,
+      type: "pet",
+      name: cardData.name,
+      imageUrl: "/public/1e7b92b6bc9796f0a7d78b9e386b870d.jpg",
+    });
+
+    if (isAdded) {
+      toast.success("Добавлено в избранное");
+    } else {
+      toast.info("Удалено из избранного");
+    }
   };
 
   return (
@@ -58,19 +81,19 @@ export function CardElement({ cardData }: CardElementProps) {
             </Typography>
           </Box>
 
-          <Typography variant="body2" color="text.secondary" paragraph>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             <Box component="span" sx={{ fontWeight: "bold" }}>
               Вакцинация:
             </Box>{" "}
             {cardData.isVaccinated ? <CheckCircleIcon /> : <CancelIcon />}
           </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             <Box component="span" sx={{ fontWeight: "bold" }}>
               Город:
             </Box>{" "}
             {cardData.city}
           </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             <Box component="span" sx={{ fontWeight: "bold" }}>
               Статус:
             </Box>{" "}
@@ -91,20 +114,20 @@ export function CardElement({ cardData }: CardElementProps) {
               Подробнее
             </Button>
 
-            <Button
-              variant="outlined"
-              size="small"
-              sx={{
-                minWidth: "auto",
-                borderRadius: 2,
-                padding: "6px 8px",
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-            >
-              <StarIcon />
-            </Button>
+            <Tooltip title={isFavorite(cardData.id) ? "Удалить из избранного" : "Добавить в избранное"}>
+              <IconButton
+                size="small"
+                sx={{
+                  minWidth: "auto",
+                  borderRadius: 2,
+                  padding: "6px 8px",
+                  color: isFavorite(cardData.id) ? "warning" : "default",
+                }}
+                onClick={handleFavoriteClick}
+              >
+                {isFavorite(cardData.id) ? <StarIcon /> : <StarBorderIcon />}
+              </IconButton>
+            </Tooltip>
           </Box>
         </CardContent>
       </Card>

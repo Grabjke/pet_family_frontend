@@ -8,6 +8,7 @@ import { PetDetailPage } from "../pages/PetDetail/PetDetailPage";
 import { HelpPage } from "../pages/Help/HelpPage";
 import { VolunteersPage } from "../pages/Volunteers/VolunteersPage";
 import { VolunteerDetailPage } from "../pages/Volunteers/VolunteerDetailPage";
+import { FavoritesPage } from "../pages/Favorites/FavoritesPage";
 
 export const router = createBrowserRouter([
   {
@@ -49,6 +50,10 @@ export const router = createBrowserRouter([
       {
         path: "volunteers/:volunteerId",
         element: <VolunteerDetailPage />,
+      },
+      {
+        path: "favorites",
+        element: <FavoritesPage />,
       },
     ],
     errorElement: <div>Страница не найдена</div>,

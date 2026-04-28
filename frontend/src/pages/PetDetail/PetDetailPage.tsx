@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useGetPetByIdQuery } from "../../modules/pets/api";
+import { useGetVolunteerByIdQuery } from "../../modules/volunteers/api";
 import {
   Box,
   Typography,
@@ -10,6 +11,10 @@ import {
   Paper,
   Avatar,
   Grid,
+  IconButton,
+  Tooltip,
+  Card,
+  CardContent,
 } from "@mui/material";
 import {
   Pets,
@@ -26,13 +31,19 @@ import {
   Restaurant,
   Home,
   Send,
+  StarBorder,
+  Person,
+  ArrowForward,
 } from "@mui/icons-material";
 import { helpStatusMessages } from "../../utils/helpStatusMessages";
 import { renderErrorState } from "../../utils/errorPageWithState";
+import { useFavorites } from "../../shared/hooks/useFavorites";
+import { toast } from "react-toastify";
 
 export function PetDetailPage() {
   const { petId } = useParams<{ petId: string }>();
   const navigate = useNavigate();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const {
     data: petData,
@@ -43,6 +54,14 @@ export function PetDetailPage() {
   });
 
   const pet = petData?.result;
+
+  const {
+    data: volunteerData,
+  } = useGetVolunteerByIdQuery(pet?.volunteerId || "", {
+    skip: !pet?.volunteerId,
+  });
+
+  const volunteer = volunteerData?.result;
 
   if (isLoading) {
     return (
@@ -61,6 +80,27 @@ export function PetDetailPage() {
 
   const handleBack = () => {
     navigate(-1);
+  };
+
+  const handleVolunteerClick = () => {
+    if (volunteer) {
+      navigate(`/volunteers/${volunteer.id}`);
+    }
+  };
+
+  const handleFavoriteClick = () => {
+    const isAdded = toggleFavorite({
+      id: pet.id,
+      type: "pet",
+      name: pet.name,
+      imageUrl: "/public/1e7b92b6bc9796f0a7d78b9e386b870d.jpg",
+    });
+
+    if (isAdded) {
+      toast.success("Добавлено в избранное");
+    } else {
+      toast.info("Удалено из избранного");
+    }
   };
 
   const getHelpStatusColor = (status: string) => {
@@ -206,6 +246,48 @@ export function PetDetailPage() {
               </Typography>
             </Box>
           </Paper>
+
+          {volunteer && (
+            <Paper elevation={2} sx={{ borderRadius: 3, mb: 3 }}>
+              <Box className="p-6">
+                <Typography variant="h5" className="font-bold mb-4">
+                  Волонтер
+                </Typography>
+                <Card
+                  sx={{
+                    borderRadius: 2,
+                    cursor: "pointer",
+                    transition: "transform 0.2s, box-shadow 0.2s",
+                    "&:hover": {
+                      transform: "translateY(-2px)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    },
+                  }}
+                  onClick={handleVolunteerClick}
+                >
+                  <CardContent sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+                    <Avatar
+                      sx={{ width: 60, height: 60, bgcolor: "primary.main" }}
+                      src="/public/Manya-690x460-406558120.jpg"
+                    >
+                      <Person sx={{ fontSize: 30 }} />
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="h6" className="font-bold">
+                        {[volunteer.name, volunteer.surName, volunteer.patronymic]
+                          .filter(Boolean)
+                          .join(" ")}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {volunteer.experience} лет опыта
+                      </Typography>
+                    </Box>
+                    <ArrowForward sx={{ color: "text.secondary" }} />
+                  </CardContent>
+                </Card>
+              </Box>
+            </Paper>
+          )}
         </Grid>
 
         <Grid item xs={12} md={4}>
@@ -328,15 +410,17 @@ export function PetDetailPage() {
                   variant="outlined"
                   fullWidth
                   size="large"
-                  startIcon={<Star />}
+                  startIcon={isFavorite(pet.id) ? <Star /> : <StarBorder />}
+                  onClick={handleFavoriteClick}
                   sx={{
                     py: 1.5,
                     borderRadius: 2,
                     textTransform: "none",
                     fontWeight: 600,
+                    color: isFavorite(pet.id) ? "warning" : "default",
                   }}
                 >
-                  В избранное
+                  {isFavorite(pet.id) ? "В избранном" : "В избранное"}
                 </Button>
               </Box>
             </Box>

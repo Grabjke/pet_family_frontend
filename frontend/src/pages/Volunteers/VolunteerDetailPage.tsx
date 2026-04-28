@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useGetVolunteerByIdQuery } from "../../modules/volunteers/api";
+import { useGetPetsQuery } from "../../modules/pets/api";
 import {
   Box,
   Typography,
@@ -12,6 +13,9 @@ import {
   Paper,
   Avatar,
   Grid,
+  Card,
+  CardContent,
+  CardMedia,
 } from "@mui/material";
 import {
   Person,
@@ -24,14 +28,22 @@ import {
   Instagram,
   LinkedIn,
   Star,
+  StarBorder,
   Send,
+  Pets,
+  CheckCircle,
+  Cancel,
 } from "@mui/icons-material";
 import { renderErrorState } from "../../utils/errorPageWithState";
 import type { SocialNetwork } from "../../modules/volunteers/volunteersSlice";
+import { useFavorites } from "../../shared/hooks/useFavorites";
+import { toast } from "react-toastify";
+import { helpStatusMessages } from "../../utils/helpStatusMessages";
 
 export function VolunteerDetailPage() {
   const { volunteerId } = useParams<{ volunteerId: string }>();
   const navigate = useNavigate();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const {
     data: volunteerData,
@@ -41,7 +53,22 @@ export function VolunteerDetailPage() {
     skip: !volunteerId,
   });
 
+  const {
+    data: petsData,
+    isLoading: isPetsLoading,
+  } = useGetPetsQuery(
+    {
+      volunteerId: volunteerId!,
+      page: 1,
+      pageSize: 100,
+    },
+    {
+      skip: !volunteerId,
+    }
+  );
+
   const volunteer = volunteerData?.result;
+  const pets = petsData?.result?.items || [];
 
   if (isLoading) {
     return (
@@ -64,6 +91,27 @@ export function VolunteerDetailPage() {
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
+  };
+
+  const handleFavoriteClick = () => {
+    const isAdded = toggleFavorite({
+      id: volunteer.id,
+      type: "volunteer",
+      name: [volunteer.name, volunteer.surName, volunteer.patronymic]
+        .filter(Boolean)
+        .join(" "),
+      imageUrl: "/public/Manya-690x460-406558120.jpg",
+    });
+
+    if (isAdded) {
+      toast.success("Добавлено в избранное");
+    } else {
+      toast.info("Удалено из избранного");
+    }
+  };
+
+  const handlePetClick = (petId: string) => {
+    navigate(`/pets/${petId}`);
   };
 
   const getSocialIcon = (name: string) => {
@@ -197,6 +245,83 @@ export function VolunteerDetailPage() {
               </Box>
             </Paper>
           )}
+
+          <Paper elevation={2} sx={{ borderRadius: 3, mb: 3 }}>
+            <Box className="p-6">
+              <Typography variant="h5" className="font-bold mb-4">
+                Животные под опекой
+              </Typography>
+              {isPetsLoading ? (
+                <Box className="flex items-center justify-center py-8">
+                  <CircularProgress size={40} />
+                </Box>
+              ) : pets.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  У этого волонтера пока нет животных под опекой
+                </Typography>
+              ) : (
+                <Grid container spacing={3}>
+                  {pets.map((pet) => (
+                    <Grid item xs={12} sm={6} md={4} lg={3} key={pet.id}>
+                      <Card
+                        sx={{
+                          borderRadius: 2,
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                          transition: "transform 0.2s, box-shadow 0.2s",
+                          "&:hover": {
+                            transform: "translateY(-4px)",
+                            boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
+                          },
+                          cursor: "pointer",
+                        }}
+                        onClick={() => handlePetClick(pet.id)}
+                      >
+                        <CardMedia
+                          sx={{ height: 180 }}
+                          image="/public/1e7b92b6bc9796f0a7d78b9e386b870d.jpg"
+                          title={pet.name}
+                        />
+                        <CardContent sx={{ p: 2 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                            <Pets sx={{ mr: 1, color: "primary.main", fontSize: 20 }} />
+                            <Typography
+                              variant="h6"
+                              component="div"
+                              sx={{ fontWeight: "bold", fontSize: "1rem" }}
+                            >
+                              {pet.name}
+                            </Typography>
+                          </Box>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            <Box component="span" sx={{ fontWeight: "bold" }}>
+                              Вакцинация:
+                            </Box>{" "}
+                            {pet.isVaccinated ? (
+                              <CheckCircle sx={{ fontSize: 16, verticalAlign: "middle", color: "#388E3C" }} />
+                            ) : (
+                              <Cancel sx={{ fontSize: 16, verticalAlign: "middle", color: "#D32F2F" }} />
+                            )}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            <Box component="span" sx={{ fontWeight: "bold" }}>
+                              Город:
+                            </Box>{" "}
+                            {pet.city || "Не указан"}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            <Box component="span" sx={{ fontWeight: "bold" }}>
+                              Статус:
+                            </Box>{" "}
+                            {helpStatusMessages[pet.helpStatus]}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
+            </Box>
+          </Paper>
         </Grid>
 
         <Grid item xs={12} md={4}>
@@ -310,15 +435,17 @@ export function VolunteerDetailPage() {
                   variant="outlined"
                   fullWidth
                   size="large"
-                  startIcon={<Star />}
+                  startIcon={isFavorite(volunteer.id) ? <Star /> : <StarBorder />}
+                  onClick={handleFavoriteClick}
                   sx={{
                     py: 1.5,
                     borderRadius: 2,
                     textTransform: "none",
                     fontWeight: 600,
+                    color: isFavorite(volunteer.id) ? "warning" : "default",
                   }}
                 >
-                  В избранное
+                  {isFavorite(volunteer.id) ? "В избранном" : "В избранное"}
                 </Button>
               </Box>
             </Box>
