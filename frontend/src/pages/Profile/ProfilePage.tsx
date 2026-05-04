@@ -8,19 +8,238 @@ import {
   Chip,
   Button,
   Divider,
+  Stack,
 } from "@mui/material";
 import {
   Person,
-  Email,
-  Phone,
   Logout,
   Favorite,
-  History,
+  Pets,
+  Add,
+  Group,
+  HelpOutline,
+  ArrowForward,
+  Bookmark,
+  Badge as BadgeIcon,
 } from "@mui/icons-material";
 import { useAppSelector } from "../../shared/redux";
 import { authSelectors } from "../../modules/auth/authSlice";
 import { useFavorites } from "../../shared/hooks/useFavorites";
 import { useLogout } from "../../modules/auth/useLogout";
+
+// Универсальная карточка-секция (как в Pet/Volunteer pages)
+function Section({
+  title,
+  children,
+  action,
+}: {
+  title: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: { xs: 2.5, md: 3.5 },
+        borderRadius: 3,
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 2.5,
+          gap: 2,
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{ fontWeight: 700, letterSpacing: "-0.01em" }}
+        >
+          {title}
+        </Typography>
+        {action}
+      </Box>
+      {children}
+    </Paper>
+  );
+}
+
+// Карточка статистики
+function StatCard({
+  icon,
+  value,
+  label,
+  iconColor,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  value: number;
+  label: string;
+  iconColor: string;
+  onClick?: () => void;
+}) {
+  return (
+    <Paper
+      elevation={0}
+      onClick={onClick}
+      sx={{
+        p: 2.5,
+        borderRadius: 3,
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper",
+        cursor: onClick ? "pointer" : "default",
+        transition: "all 0.2s ease",
+        height: "100%",
+        "&:hover": onClick
+          ? {
+              borderColor: "primary.light",
+              transform: "translateY(-2px)",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+            }
+          : {},
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={2}>
+        <Box
+          sx={{
+            width: 48,
+            height: 48,
+            borderRadius: 2,
+            bgcolor: "action.hover",
+            color: iconColor,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </Box>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.1,
+              fontSize: { xs: "1.75rem", md: "2rem" },
+            }}
+          >
+            {value}
+          </Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", fontWeight: 500 }}
+          >
+            {label}
+          </Typography>
+        </Box>
+      </Stack>
+    </Paper>
+  );
+}
+
+// Кнопка быстрого действия (плитка)
+function ActionTile({
+  icon,
+  title,
+  description,
+  onClick,
+  color = "primary.main",
+  primary = false,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  onClick: () => void;
+  color?: string;
+  primary?: boolean;
+}) {
+  return (
+    <Paper
+      elevation={0}
+      onClick={onClick}
+      sx={{
+        p: 2.5,
+        borderRadius: 3,
+        border: "1px solid",
+        borderColor: primary ? "transparent" : "divider",
+        background: primary
+          ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+          : "background.paper",
+        color: primary ? "white" : "text.primary",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 2,
+        "&:hover": {
+          transform: "translateY(-2px)",
+          boxShadow: primary
+            ? "0 8px 24px rgba(102,126,234,0.3)"
+            : "0 4px 16px rgba(0,0,0,0.06)",
+          borderColor: primary ? "transparent" : "primary.light",
+        },
+      }}
+    >
+      <Box
+        sx={{
+          width: 44,
+          height: 44,
+          borderRadius: 2,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          bgcolor: primary ? "rgba(255,255,255,0.2)" : "action.hover",
+          color: primary ? "white" : color,
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography
+          variant="subtitle1"
+          sx={{ fontWeight: 700, lineHeight: 1.2, mb: 0.25 }}
+        >
+          {title}
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{
+            color: primary ? "rgba(255,255,255,0.85)" : "text.secondary",
+            display: "block",
+            lineHeight: 1.3,
+          }}
+        >
+          {description}
+        </Typography>
+      </Box>
+      <ArrowForward
+        sx={{
+          fontSize: 18,
+          opacity: 0.6,
+          flexShrink: 0,
+        }}
+      />
+    </Paper>
+  );
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  volunteer: "Волонтёр",
+  admin: "Администратор",
+  user: "Пользователь",
+};
 
 export function ProfilePage() {
   const navigate = useNavigate();
@@ -36,163 +255,270 @@ export function ProfilePage() {
 
   const petsFavorites = favorites.filter((f) => f.type === "pet");
   const volunteersFavorites = favorites.filter((f) => f.type === "volunteer");
+  const isVolunteer = roles.includes("volunteer");
+
+  // Сокращённый ID для отображения
+  const shortId = userId ? `${userId.slice(0, 8)}…${userId.slice(-4)}` : "—";
 
   return (
-    <Box className="p-6 max-w-6xl mx-auto">
-      <Typography variant="h4" component="h1" className="font-bold mb-6">
-        Мой профиль
-      </Typography>
+    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: "auto" }}>
+      {/* Заголовок страницы */}
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant="h3"
+          component="h1"
+          sx={{
+            fontWeight: 800,
+            letterSpacing: "-0.02em",
+            fontSize: { xs: "1.75rem", md: "2.5rem" },
+            mb: 0.5,
+          }}
+        >
+          Мой профиль
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Управляйте своим аккаунтом и быстрым доступом к разделам
+        </Typography>
+      </Box>
 
       <Grid container spacing={3}>
+        {/* Левая колонка — карточка профиля */}
         <Grid item xs={12} md={4}>
-          <Paper elevation={2} sx={{ borderRadius: 3, p: 4 }}>
-            <Box className="flex flex-col items-center text-center">
-              <Avatar
-                sx={{ width: 120, height: 120, bgcolor: "primary.main", mb: 3 }}
+          <Box sx={{ position: { md: "sticky" }, top: { md: 24 } }}>
+            <Stack spacing={3}>
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  overflow: "hidden",
+                }}
               >
-                <Person sx={{ fontSize: 60 }} />
-              </Avatar>
-
-              <Typography variant="h5" className="font-bold mb-2">
-                Пользователь
-              </Typography>
-
-              <Box className="flex flex-wrap gap-2 mb-4">
-                {roles.map((role) => (
-                  <Chip
-                    key={role}
-                    label={role === "volunteer" ? "Волонтер" : role}
-                    color="primary"
-                    size="small"
-                  />
-                ))}
-              </Box>
-
-              <Typography variant="body2" color="text.secondary" className="mb-4">
-                ID: {userId || "Не указан"}
-              </Typography>
-
-              <Divider sx={{ width: "100%", mb: 3 }} />
-
-              <Box className="flex flex-col gap-2 w-full">
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  color="error"
-                  startIcon={<Logout />}
-                  onClick={handleLogout}
+                {/* Декоративный градиент-фон сверху */}
+                <Box
+                  sx={{
+                    height: 80,
+                    background:
+                      "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  }}
+                />
+                <Box
+                  sx={{
+                    px: 3,
+                    pb: 3,
+                    pt: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    textAlign: "center",
+                  }}
                 >
-                  Выйти
-                </Button>
-              </Box>
-            </Box>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={8}>
-          <Paper elevation={2} sx={{ borderRadius: 3, p: 4, mb: 3 }}>
-            <Typography variant="h6" className="font-bold mb-4">
-              Статистика
-            </Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={6} sm={3}>
-                <Box className="p-4 bg-blue-50 rounded-xl text-center">
-                  <Favorite sx={{ fontSize: 32, color: "#1976D2", mb: 1 }} />
-                  <Typography variant="h4" className="font-bold">
-                    {petsFavorites.length}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Питомцев в избранном
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <Box className="p-4 bg-green-50 rounded-xl text-center">
-                  <Person sx={{ fontSize: 32, color: "#388E3C", mb: 1 }} />
-                  <Typography variant="h4" className="font-bold">
-                    {volunteersFavorites.length}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Волонтеров в избранном
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
-          </Paper>
-
-          <Paper elevation={2} sx={{ borderRadius: 3, p: 4 }}>
-            <Typography variant="h6" className="font-bold mb-4">
-              Быстрые действия
-            </Typography>
-            <Grid container spacing={2}>
-              {roles.includes("volunteer") && (
-                <Grid item xs={12} sm={6}>
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    size="large"
-                    onClick={() => navigate("/create-pet")}
+                  <Avatar
                     sx={{
-                      py: 2,
+                      width: 96,
+                      height: 96,
+                      bgcolor: "primary.main",
+                      mt: -6,
+                      mb: 2,
+                      border: "4px solid",
+                      borderColor: "background.paper",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+                    }}
+                  >
+                    <Person sx={{ fontSize: 48 }} />
+                  </Avatar>
+
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 700, letterSpacing: "-0.01em", mb: 1 }}
+                  >
+                    Добро пожаловать!
+                  </Typography>
+
+                  <Stack
+                    direction="row"
+                    spacing={0.75}
+                    sx={{ mb: 2.5 }}
+                    flexWrap="wrap"
+                    justifyContent="center"
+                    useFlexGap
+                  >
+                    {roles.length > 0 ? (
+                      roles.map((role) => (
+                        <Chip
+                          key={role}
+                          label={ROLE_LABELS[role] || role}
+                          size="small"
+                          color={role === "volunteer" ? "success" : "primary"}
+                          sx={{ fontWeight: 600 }}
+                        />
+                      ))
+                    ) : (
+                      <Chip
+                        label="Пользователь"
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    )}
+                  </Stack>
+
+                  <Divider sx={{ width: "100%", mb: 2 }} />
+
+                  {/* ID пользователя */}
+                  <Box
+                    sx={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1.5,
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: "action.hover",
+                      mb: 2,
+                    }}
+                  >
+                    <BadgeIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                    <Box sx={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: "block", lineHeight: 1.2 }}
+                      >
+                        ID пользователя
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontFamily: "monospace",
+                          fontWeight: 600,
+                          fontSize: "0.8rem",
+                        }}
+                        title={userId || ""}
+                      >
+                        {shortId}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    color="error"
+                    startIcon={<Logout />}
+                    onClick={handleLogout}
+                    sx={{
                       borderRadius: 2,
                       textTransform: "none",
                       fontWeight: 600,
+                      py: 1.25,
                     }}
                   >
-                    Создать карточку питомца
+                    Выйти из аккаунта
                   </Button>
-                </Grid>
-              )}
-              <Grid item xs={12} sm={6}>
+                </Box>
+              </Paper>
+            </Stack>
+          </Box>
+        </Grid>
+
+        {/* Правая колонка — статистика и действия */}
+        <Grid item xs={12} md={8}>
+          <Stack spacing={3}>
+            {/* Статистика */}
+            <Section
+              title="Статистика"
+              action={
                 <Button
-                  variant="outlined"
-                  fullWidth
-                  size="large"
+                  size="small"
+                  endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
                   onClick={() => navigate("/favorites")}
                   sx={{
-                    py: 2,
-                    borderRadius: 2,
                     textTransform: "none",
                     fontWeight: 600,
+                    color: "text.secondary",
                   }}
                 >
-                  Избранное
+                  Все избранное
                 </Button>
+              }
+            >
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <StatCard
+                    icon={<Pets />}
+                    value={petsFavorites.length}
+                    label="Питомцев в избранном"
+                    iconColor="primary.main"
+                    onClick={() => navigate("/favorites")}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <StatCard
+                    icon={<Group />}
+                    value={volunteersFavorites.length}
+                    label="Волонтёров в избранном"
+                    iconColor="success.main"
+                    onClick={() => navigate("/favorites")}
+                  />
+                </Grid>
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  size="large"
-                  onClick={() => navigate("/volunteers")}
-                  sx={{
-                    py: 2,
-                    borderRadius: 2,
-                    textTransform: "none",
-                    fontWeight: 600,
-                  }}
-                >
-                  Волонтеры
-                </Button>
+            </Section>
+
+            {/* Быстрые действия */}
+            <Section title="Быстрые действия">
+              <Grid container spacing={2}>
+                {isVolunteer && (
+                  <Grid item xs={12} sm={6}>
+                    <ActionTile
+                      icon={<Add />}
+                      title="Добавить питомца"
+                      description="Создать карточку нового подопечного"
+                      onClick={() => navigate("/create-pet")}
+                      primary
+                    />
+                  </Grid>
+                )}
+                <Grid item xs={12} sm={6}>
+                  <ActionTile
+                    icon={<Bookmark />}
+                    title="Избранное"
+                    description={`${favorites.length} сохранённых`}
+                    onClick={() => navigate("/favorites")}
+                    color="warning.main"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <ActionTile
+                    icon={<Group />}
+                    title="Волонтёры"
+                    description="Найти людей, которые помогают"
+                    onClick={() => navigate("/volunteers")}
+                    color="success.main"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <ActionTile
+                    icon={<Pets />}
+                    title="Питомцы"
+                    description="Все животные на платформе"
+                    onClick={() => navigate("/pets")}
+                    color="primary.main"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <ActionTile
+                    icon={<HelpOutline />}
+                    title="Помощь"
+                    description="Часто задаваемые вопросы"
+                    onClick={() => navigate("/help")}
+                    color="info.main"
+                  />
+                </Grid>
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  size="large"
-                  onClick={() => navigate("/help")}
-                  sx={{
-                    py: 2,
-                    borderRadius: 2,
-                    textTransform: "none",
-                    fontWeight: 600,
-                  }}
-                >
-                  Помощь
-                </Button>
-              </Grid>
-            </Grid>
-          </Paper>
+            </Section>
+          </Stack>
         </Grid>
       </Grid>
     </Box>

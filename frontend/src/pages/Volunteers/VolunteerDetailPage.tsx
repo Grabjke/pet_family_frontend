@@ -6,16 +6,14 @@ import {
   Typography,
   Button,
   CircularProgress,
-  Alert,
   Chip,
   IconButton,
   Tooltip,
   Paper,
   Avatar,
   Grid,
-  Card,
-  CardContent,
-  CardMedia,
+  Stack,
+  Divider,
 } from "@mui/material";
 import {
   Person,
@@ -34,6 +32,9 @@ import {
   CheckCircle,
   Cancel,
   Add,
+  ArrowBack,
+  ArrowForward,
+  LocationOn,
 } from "@mui/icons-material";
 import { renderErrorState } from "../../utils/errorPageWithState";
 import type { SocialNetwork } from "../../modules/volunteers/volunteersSlice";
@@ -44,13 +45,207 @@ import { authSelectors } from "../../modules/auth/authSlice";
 import { useSelector } from "react-redux";
 import type { AppState } from "../../shared/redux";
 
+// Аватар волонтёра — всегда из public-папки
+const VOLUNTEER_AVATAR_URL = "/Manya-690x460-406558120.jpg";
+
+// Карточка-секция (та же, что в PetDetailPage)
+function Section({
+  title,
+  children,
+  action,
+}: {
+  title: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: { xs: 2.5, md: 3.5 },
+        borderRadius: 3,
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 2.5,
+          gap: 2,
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{ fontWeight: 700, letterSpacing: "-0.01em" }}
+        >
+          {title}
+        </Typography>
+        {action}
+      </Box>
+      {children}
+    </Paper>
+  );
+}
+
+// Строка «иконка + лейбл + значение»
+function InfoRow({
+  icon,
+  label,
+  value,
+  iconColor = "primary.main",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  iconColor?: string;
+}) {
+  return (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 2, py: 1.25 }}>
+      <Box
+        sx={{
+          width: 40,
+          height: 40,
+          borderRadius: 2,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          bgcolor: "action.hover",
+          color: iconColor,
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block", lineHeight: 1.2, mb: 0.25 }}
+        >
+          {label}
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}
+        >
+          {value}
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+// Компактная карточка питомца
+function PetCard({
+  pet,
+  onClick,
+}: {
+  pet: {
+    id: string;
+    name: string;
+    isVaccinated: boolean;
+    city?: string;
+    helpStatus: string;
+  };
+  onClick: () => void;
+}) {
+  return (
+    <Paper
+      elevation={0}
+      onClick={onClick}
+      sx={{
+        borderRadius: 3,
+        border: "1px solid",
+        borderColor: "divider",
+        overflow: "hidden",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        "&:hover": {
+          transform: "translateY(-2px)",
+          borderColor: "primary.light",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+        },
+      }}
+    >
+      <Box
+        sx={{
+          height: 140,
+          bgcolor: "action.hover",
+          backgroundImage: "url(/1e7b92b6bc9796f0a7d78b9e386b870d.jpg)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      />
+      <Box sx={{ p: 2 }}>
+        <Stack
+          direction="row"
+          spacing={0.75}
+          alignItems="center"
+          sx={{ mb: 1 }}
+        >
+          <Pets sx={{ fontSize: 16, color: "primary.main" }} />
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }} noWrap>
+            {pet.name}
+          </Typography>
+        </Stack>
+        <Stack spacing={0.5}>
+          <Stack direction="row" alignItems="center" spacing={0.75}>
+            {pet.isVaccinated ? (
+              <CheckCircle sx={{ fontSize: 14, color: "success.main" }} />
+            ) : (
+              <Cancel sx={{ fontSize: 14, color: "text.disabled" }} />
+            )}
+            <Typography variant="caption" color="text.secondary">
+              {pet.isVaccinated ? "Вакцинирован" : "Не вакцинирован"}
+            </Typography>
+          </Stack>
+          {pet.city && (
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <LocationOn sx={{ fontSize: 14, color: "text.secondary" }} />
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {pet.city}
+              </Typography>
+            </Stack>
+          )}
+          <Chip
+            label={helpStatusMessages[pet.helpStatus]}
+            size="small"
+            sx={{
+              alignSelf: "flex-start",
+              mt: 0.5,
+              height: 22,
+              fontSize: "0.7rem",
+              fontWeight: 600,
+            }}
+          />
+        </Stack>
+      </Box>
+    </Paper>
+  );
+}
+
+const SOCIAL_META: Record<string, { icon: React.ReactNode; color: string }> = {
+  facebook: { icon: <Facebook />, color: "#1877F2" },
+  twitter: { icon: <Twitter />, color: "#1DA1F2" },
+  instagram: { icon: <Instagram />, color: "#E4405F" },
+  linkedin: { icon: <LinkedIn />, color: "#0A66C2" },
+};
+
 export function VolunteerDetailPage() {
   const { volunteerId } = useParams<{ volunteerId: string }>();
   const navigate = useNavigate();
   const { isFavorite, toggleFavorite } = useFavorites();
 
-  const userId = useSelector((state: AppState) => authSelectors.selectCurrentUserId(state));
-  const roles = useSelector((state: AppState) => authSelectors.selectCurrentUserRoles(state));
+  const userId = useSelector((state: AppState) =>
+    authSelectors.selectCurrentUserId(state),
+  );
+  const roles = useSelector((state: AppState) =>
+    authSelectors.selectCurrentUserRoles(state),
+  );
 
   const isOwnProfile = userId === volunteerId && roles.includes("volunteer");
 
@@ -58,22 +253,15 @@ export function VolunteerDetailPage() {
     data: volunteerData,
     isLoading,
     isError,
-  } = useGetVolunteerByIdQuery(volunteerId!, {
-    skip: !volunteerId,
-  });
+  } = useGetVolunteerByIdQuery(volunteerId!, { skip: !volunteerId });
 
-  const {
-    data: petsData,
-    isLoading: isPetsLoading,
-  } = useGetPetsQuery(
+  const { data: petsData, isLoading: isPetsLoading } = useGetPetsQuery(
     {
       volunteerId: volunteerId!,
       page: 1,
       pageSize: 100,
     },
-    {
-      skip: !volunteerId,
-    }
+    { skip: !volunteerId },
   );
 
   const volunteer = volunteerData?.result;
@@ -81,159 +269,203 @@ export function VolunteerDetailPage() {
 
   if (isLoading) {
     return (
-      <Box className="flex items-center justify-center h-full">
-        <CircularProgress size={60} />
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "60vh",
+        }}
+      >
+        <CircularProgress size={48} />
       </Box>
     );
   }
 
   if (isError || !volunteer) {
     return renderErrorState({
-      name: "Волонтер не найден",
-      description: "Не удалось загрузить информацию о волонтере",
+      name: "Волонтёр не найден",
+      description: "Не удалось загрузить информацию о волонтёре",
     });
   }
 
-  const handleBack = () => {
-    navigate(-1);
-  };
+  const fullName = [volunteer.name, volunteer.surName, volunteer.patronymic]
+    .filter(Boolean)
+    .join(" ");
+
+  const initials = [volunteer.name, volunteer.surName]
+    .filter(Boolean)
+    .map((s) => s[0])
+    .join("")
+    .toUpperCase();
+
+  const favorited = isFavorite(volunteer.id);
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
+    toast.success("Скопировано");
   };
 
   const handleFavoriteClick = () => {
     const isAdded = toggleFavorite({
       id: volunteer.id,
       type: "volunteer",
-      name: [volunteer.name, volunteer.surName, volunteer.patronymic]
-        .filter(Boolean)
-        .join(" "),
-      imageUrl: "/public/Manya-690x460-406558120.jpg",
+      name: fullName,
+      imageUrl: VOLUNTEER_AVATAR_URL,
     });
-
-    if (isAdded) {
-      toast.success("Добавлено в избранное");
-    } else {
-      toast.info("Удалено из избранного");
-    }
+    isAdded
+      ? toast.success("Добавлено в избранное")
+      : toast.info("Удалено из избранного");
   };
 
-  const handlePetClick = (petId: string) => {
-    navigate(`/pets/${petId}`);
-  };
-
-  const getSocialIcon = (name: string) => {
-    switch (name.toLowerCase()) {
-      case "facebook":
-        return <Facebook />;
-      case "twitter":
-        return <Twitter />;
-      case "instagram":
-        return <Instagram />;
-      case "linkedin":
-        return <LinkedIn />;
-      default:
-        return <Person />;
-    }
-  };
-
-  const getSocialColor = (name: string) => {
-    switch (name.toLowerCase()) {
-      case "facebook":
-        return "#1877F2";
-      case "twitter":
-        return "#1DA1F2";
-      case "instagram":
-        return "#E4405F";
-      case "linkedin":
-        return "#0A66C2";
-      default:
-        return "primary.main";
-    }
-  };
-
-  const fullName = [
-    volunteer.name,
-    volunteer.surName,
-    volunteer.patronymic,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const getSocialMeta = (name: string) =>
+    SOCIAL_META[name.toLowerCase()] || {
+      icon: <Person />,
+      color: "#6B7280",
+    };
 
   return (
-    <Box className="p-6 max-w-7xl mx-auto">
+    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: "auto" }}>
+      {/* Кнопка «Назад» */}
       <Button
-        onClick={handleBack}
-        variant="text"
-        sx={{ mb: 4, color: "text.secondary" }}
-        startIcon={<span>←</span>}
+        onClick={() => navigate(-1)}
+        startIcon={<ArrowBack />}
+        sx={{
+          mb: 3,
+          color: "text.secondary",
+          textTransform: "none",
+          fontWeight: 500,
+        }}
       >
         Назад к списку
       </Button>
 
-      <Box className="mb-6">
-        <Box className="flex items-center gap-4 mb-2">
-          <Avatar
-            sx={{ width: 80, height: 80, bgcolor: "primary.main" }}
-            src="/public/Manya-690x460-406558120.jpg"
+      {/* Заголовок: аватар + имя + чипы */}
+      <Box
+        sx={{
+          mb: 4,
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "flex-start", sm: "center" },
+          gap: { xs: 2.5, sm: 3 },
+        }}
+      >
+        <Avatar
+          src={VOLUNTEER_AVATAR_URL}
+          sx={{
+            width: { xs: 96, sm: 112 },
+            height: { xs: 96, sm: 112 },
+            bgcolor: "primary.main",
+            fontSize: "2rem",
+            fontWeight: 700,
+            border: "3px solid",
+            borderColor: "background.paper",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+          }}
+        >
+          {initials || <Person sx={{ fontSize: 48 }} />}
+        </Avatar>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ mb: 1.5 }}
+            flexWrap="wrap"
+            useFlexGap
           >
-            <Person sx={{ fontSize: 40 }} />
-          </Avatar>
-          <Box>
-            <Typography variant="h3" component="h1" className="font-bold">
-              {fullName}
-            </Typography>
-            <Box className="flex items-center gap-2 mt-1">
+            <Chip
+              label="Волонтёр"
+              color="success"
+              size="small"
+              sx={{ fontWeight: 600 }}
+            />
+            <Chip
+              label={`Опыт · ${volunteer.experience} лет`}
+              size="small"
+              variant="outlined"
+              sx={{ fontWeight: 600 }}
+            />
+            {isOwnProfile && (
               <Chip
-                label={`${volunteer.experience} лет опыта`}
+                label="Это вы"
+                size="small"
                 color="primary"
-                size="small"
+                variant="outlined"
+                sx={{ fontWeight: 600 }}
               />
-              <Chip
-                label="Волонтер"
-                color="success"
-                size="small"
-              />
-            </Box>
-          </Box>
+            )}
+          </Stack>
+          <Typography
+            variant="h3"
+            component="h1"
+            sx={{
+              fontWeight: 800,
+              letterSpacing: "-0.02em",
+              fontSize: { xs: "1.75rem", md: "2.5rem" },
+              lineHeight: 1.15,
+            }}
+          >
+            {fullName}
+          </Typography>
         </Box>
       </Box>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Paper elevation={2} sx={{ borderRadius: 3, mb: 3 }}>
-            <Box className="p-6">
-              <Typography variant="h5" className="font-bold mb-4">
-                О волонтере
+        {/* Левая колонка */}
+        <Grid item xs={12} lg={8}>
+          <Stack spacing={3}>
+            {/* О волонтёре */}
+            <Section title="О волонтёре">
+              <Typography
+                variant="body1"
+                color="text.secondary"
+                sx={{ lineHeight: 1.75 }}
+              >
+                {volunteer.description ||
+                  "Волонтёр пока не добавил описание о себе."}
               </Typography>
-              <Typography variant="body1" color="text.secondary" className="leading-relaxed">
-                {volunteer.description || "Описание отсутствует"}
-              </Typography>
-            </Box>
-          </Paper>
+            </Section>
 
-          {volunteer.donationInfo && volunteer.donationInfo.length > 0 && (
-            <Paper elevation={2} sx={{ borderRadius: 3, mb: 3 }}>
-              <Box className="p-6">
-                <Typography variant="h5" className="font-bold mb-4">
-                  Реквизиты для помощи
-                </Typography>
-                <Box className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Реквизиты */}
+            {volunteer.donationInfo && volunteer.donationInfo.length > 0 && (
+              <Section title="Реквизиты для помощи">
+                <Grid container spacing={1.5}>
                   {volunteer.donationInfo.map((requisite, index) => (
-                    <Box
-                      key={index}
-                      className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200"
-                    >
-                      <Box className="flex items-start justify-between">
-                        <Box className="flex-1">
-                          <Typography variant="subtitle2" className="font-bold mb-1">
+                    <Grid item xs={12} md={6} key={index}>
+                      <Box
+                        sx={{
+                          p: 2,
+                          borderRadius: 2,
+                          border: "1px solid",
+                          borderColor: "divider",
+                          bgcolor: "action.hover",
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 1.5,
+                          height: "100%",
+                        }}
+                      >
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{
+                              display: "block",
+                              fontWeight: 600,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              mb: 0.5,
+                            }}
+                          >
                             {requisite.title}
                           </Typography>
                           <Typography
                             variant="body2"
-                            color="text.secondary"
-                            className="font-mono text-sm"
+                            sx={{
+                              fontFamily: "monospace",
+                              fontWeight: 600,
+                              wordBreak: "break-all",
+                            }}
                           >
                             {requisite.description}
                           </Typography>
@@ -242,26 +474,23 @@ export function VolunteerDetailPage() {
                           <IconButton
                             size="small"
                             onClick={() => handleCopy(requisite.description)}
-                            sx={{ ml: 2 }}
+                            sx={{ flexShrink: 0 }}
                           >
                             <ContentCopy fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       </Box>
-                    </Box>
+                    </Grid>
                   ))}
-                </Box>
-              </Box>
-            </Paper>
-          )}
+                </Grid>
+              </Section>
+            )}
 
-          <Paper elevation={2} sx={{ borderRadius: 3, mb: 3 }}>
-            <Box className="p-6">
-              <Box className="flex items-center justify-between mb-4">
-                <Typography variant="h5" className="font-bold">
-                  Животные под опекой
-                </Typography>
-                {isOwnProfile && (
+            {/* Питомцы */}
+            <Section
+              title={`Подопечные${pets.length ? ` · ${pets.length}` : ""}`}
+              action={
+                isOwnProfile ? (
                   <Button
                     variant="contained"
                     size="small"
@@ -271,211 +500,199 @@ export function VolunteerDetailPage() {
                       borderRadius: 2,
                       textTransform: "none",
                       fontWeight: 600,
+                      boxShadow: "none",
                     }}
                   >
-                    Добавить питомца
+                    Добавить
                   </Button>
-                )}
-              </Box>
+                ) : null
+              }
+            >
               {isPetsLoading ? (
-                <Box className="flex items-center justify-center py-8">
-                  <CircularProgress size={40} />
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    py: 4,
+                  }}
+                >
+                  <CircularProgress size={32} />
                 </Box>
               ) : pets.length === 0 ? (
-                <Typography variant="body2" color="text.secondary">
-                  У этого волонтера пока нет животных под опекой
-                </Typography>
+                <Box
+                  sx={{
+                    py: 4,
+                    textAlign: "center",
+                    color: "text.secondary",
+                  }}
+                >
+                  <Pets sx={{ fontSize: 40, opacity: 0.4, mb: 1 }} />
+                  <Typography variant="body2">
+                    У волонтёра пока нет подопечных
+                  </Typography>
+                </Box>
               ) : (
-                <Grid container spacing={3}>
+                <Grid container spacing={2}>
                   {pets.map((pet) => (
-                    <Grid item xs={12} sm={6} md={4} lg={3} key={pet.id}>
-                      <Card
-                        sx={{
-                          borderRadius: 2,
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                          transition: "transform 0.2s, box-shadow 0.2s",
-                          "&:hover": {
-                            transform: "translateY(-4px)",
-                            boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
-                          },
-                          cursor: "pointer",
-                        }}
-                        onClick={() => handlePetClick(pet.id)}
-                      >
-                        <CardMedia
-                          sx={{ height: 180 }}
-                          image="/public/1e7b92b6bc9796f0a7d78b9e386b870d.jpg"
-                          title={pet.name}
-                        />
-                        <CardContent sx={{ p: 2 }}>
-                          <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                            <Pets sx={{ mr: 1, color: "primary.main", fontSize: 20 }} />
-                            <Typography
-                              variant="h6"
-                              component="div"
-                              sx={{ fontWeight: "bold", fontSize: "1rem" }}
-                            >
-                              {pet.name}
-                            </Typography>
-                          </Box>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                            <Box component="span" sx={{ fontWeight: "bold" }}>
-                              Вакцинация:
-                            </Box>{" "}
-                            {pet.isVaccinated ? (
-                              <CheckCircle sx={{ fontSize: 16, verticalAlign: "middle", color: "#388E3C" }} />
-                            ) : (
-                              <Cancel sx={{ fontSize: 16, verticalAlign: "middle", color: "#D32F2F" }} />
-                            )}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                            <Box component="span" sx={{ fontWeight: "bold" }}>
-                              Город:
-                            </Box>{" "}
-                            {pet.city || "Не указан"}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            <Box component="span" sx={{ fontWeight: "bold" }}>
-                              Статус:
-                            </Box>{" "}
-                            {helpStatusMessages[pet.helpStatus]}
-                          </Typography>
-                        </CardContent>
-                      </Card>
+                    <Grid item xs={12} sm={6} md={4} key={pet.id}>
+                      <PetCard
+                        pet={pet}
+                        onClick={() => navigate(`/pets/${pet.id}`)}
+                      />
                     </Grid>
                   ))}
                 </Grid>
               )}
-            </Box>
-          </Paper>
+            </Section>
+          </Stack>
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <Paper elevation={2} sx={{ borderRadius: 3, mb: 3 }}>
-            <Box className="p-6">
-              <Typography variant="h5" className="font-bold mb-4">
-                Контакты
-              </Typography>
-              <Box className="flex flex-col gap-3">
-                <Box className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
-                  <Box className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Email sx={{ color: "#1976D2" }} />
-                  </Box>
-                  <Box className="flex-1">
-                    <Typography variant="caption" color="text.secondary">
-                      Email
-                    </Typography>
-                    <Typography variant="body2" className="font-medium">
-                      {volunteer.email}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box className="flex items-center gap-3 p-3 bg-green-50 rounded-xl">
-                  <Box className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <Phone sx={{ color: "#388E3C" }} />
-                  </Box>
-                  <Box className="flex-1">
-                    <Typography variant="caption" color="text.secondary">
-                      Телефон
-                    </Typography>
-                    <Typography variant="body2" className="font-medium">
-                      {volunteer.phoneNumber}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl">
-                  <Box className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                    <WorkHistory sx={{ color: "#7B1FA2" }} />
-                  </Box>
-                  <Box className="flex-1">
-                    <Typography variant="caption" color="text.secondary">
-                      Опыт
-                    </Typography>
-                    <Typography variant="body2" className="font-medium">
-                      {volunteer.experience} лет
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
-            </Box>
-          </Paper>
-
-          {volunteer.socialNetworks && volunteer.socialNetworks.length > 0 && (
-            <Paper elevation={2} sx={{ borderRadius: 3, mb: 3 }}>
-              <Box className="p-6">
-                <Typography variant="h5" className="font-bold mb-4">
-                  Социальные сети
+        {/* Правая колонка — sticky */}
+        <Grid item xs={12} lg={4}>
+          <Box sx={{ position: { lg: "sticky" }, top: { lg: 24 } }}>
+            <Stack spacing={3}>
+              {/* CTA */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  background:
+                    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  color: "white",
+                }}
+              >
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
+                  Связаться с волонтёром
                 </Typography>
-                <Box className="flex flex-col gap-2">
-                  {volunteer.socialNetworks.map((social: SocialNetwork) => (
-                    <Button
-                      key={social.id}
-                      variant="outlined"
-                      fullWidth
-                      size="small"
-                      startIcon={getSocialIcon(social.name)}
-                      href={social.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{
-                        justifyContent: "flex-start",
-                        borderColor: getSocialColor(social.name),
-                        color: getSocialColor(social.name),
-                        "&:hover": {
-                          borderColor: getSocialColor(social.name),
-                          bgcolor: `${getSocialColor(social.name)}10`,
-                        },
-                      }}
-                    >
-                      {social.name}
-                    </Button>
-                  ))}
-                </Box>
-              </Box>
-            </Paper>
-          )}
+                <Typography
+                  variant="body2"
+                  sx={{ opacity: 0.9, mb: 2.5, lineHeight: 1.5 }}
+                >
+                  Напишите, чтобы узнать о подопечных или предложить помощь
+                </Typography>
+                <Stack spacing={1.25}>
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    size="large"
+                    startIcon={<Send />}
+                    sx={{
+                      py: 1.25,
+                      bgcolor: "white",
+                      color: "primary.dark",
+                      fontWeight: 700,
+                      textTransform: "none",
+                      borderRadius: 2,
+                      boxShadow: "none",
+                      "&:hover": {
+                        bgcolor: "rgba(255,255,255,0.92)",
+                        boxShadow: "none",
+                      },
+                    }}
+                  >
+                    Написать
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    size="large"
+                    onClick={handleFavoriteClick}
+                    startIcon={favorited ? <Star /> : <StarBorder />}
+                    sx={{
+                      py: 1.25,
+                      color: "white",
+                      borderColor: "rgba(255,255,255,0.5)",
+                      fontWeight: 600,
+                      textTransform: "none",
+                      borderRadius: 2,
+                      "&:hover": {
+                        borderColor: "white",
+                        bgcolor: "rgba(255,255,255,0.1)",
+                      },
+                    }}
+                  >
+                    {favorited ? "В избранном" : "В избранное"}
+                  </Button>
+                </Stack>
+              </Paper>
 
-          <Paper elevation={2} sx={{ borderRadius: 3 }}>
-            <Box className="p-6">
-              <Typography variant="h5" className="font-bold mb-4">
-                Действия
-              </Typography>
-              <Box className="flex flex-col gap-2">
-                <Button
-                  variant="contained"
-                  fullWidth
-                  size="large"
-                  startIcon={<Send />}
-                  sx={{
-                    py: 1.5,
-                    borderRadius: 2,
-                    textTransform: "none",
-                    fontWeight: 600,
-                  }}
-                >
-                  Связаться
-                </Button>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  size="large"
-                  startIcon={isFavorite(volunteer.id) ? <Star /> : <StarBorder />}
-                  onClick={handleFavoriteClick}
-                  sx={{
-                    py: 1.5,
-                    borderRadius: 2,
-                    textTransform: "none",
-                    fontWeight: 600,
-                    color: isFavorite(volunteer.id) ? "warning" : "default",
-                  }}
-                >
-                  {isFavorite(volunteer.id) ? "В избранном" : "В избранное"}
-                </Button>
-              </Box>
-            </Box>
-          </Paper>
+              {/* Контакты */}
+              <Section title="Контакты">
+                <Stack divider={<Divider />}>
+                  <InfoRow
+                    icon={<Email />}
+                    label="Email"
+                    value={volunteer.email || "Не указан"}
+                    iconColor="info.main"
+                  />
+                  <InfoRow
+                    icon={<Phone />}
+                    label="Телефон"
+                    value={volunteer.phoneNumber || "Не указан"}
+                    iconColor="success.main"
+                  />
+                  <InfoRow
+                    icon={<WorkHistory />}
+                    label="Опыт"
+                    value={`${volunteer.experience} лет`}
+                    iconColor="secondary.main"
+                  />
+                </Stack>
+              </Section>
+
+              {/* Соцсети */}
+              {volunteer.socialNetworks &&
+                volunteer.socialNetworks.length > 0 && (
+                  <Section title="Социальные сети">
+                    <Stack spacing={1}>
+                      {volunteer.socialNetworks.map((social: SocialNetwork) => {
+                        const meta = getSocialMeta(social.name);
+                        return (
+                          <Button
+                            key={social.id}
+                            variant="outlined"
+                            fullWidth
+                            startIcon={meta.icon}
+                            endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
+                            href={social.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{
+                              justifyContent: "space-between",
+                              py: 1.25,
+                              borderRadius: 2,
+                              borderColor: "divider",
+                              color: "text.primary",
+                              textTransform: "none",
+                              fontWeight: 600,
+                              "& .MuiButton-startIcon": {
+                                color: meta.color,
+                                marginRight: 1.5,
+                              },
+                              "&:hover": {
+                                borderColor: meta.color,
+                                bgcolor: `${meta.color}10`,
+                              },
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                flex: 1,
+                                textAlign: "left",
+                                textTransform: "capitalize",
+                              }}
+                            >
+                              {social.name}
+                            </Box>
+                          </Button>
+                        );
+                      })}
+                    </Stack>
+                  </Section>
+                )}
+            </Stack>
+          </Box>
         </Grid>
       </Grid>
     </Box>

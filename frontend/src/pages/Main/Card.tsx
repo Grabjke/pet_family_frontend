@@ -18,6 +18,8 @@ import { useNavigate } from "react-router-dom";
 import { useFavorites } from "../../shared/hooks/useFavorites";
 import { toast } from "react-toastify";
 import { PetPhoto } from "../../shared/components/PetPhoto";
+import { PhotoLightbox } from "../../shared/components/PhotoLightbox";
+import { useState } from "react";
 
 interface CardElementProps {
   cardData: Pet;
@@ -26,9 +28,17 @@ interface CardElementProps {
 export function CardElement({ cardData }: CardElementProps) {
   const navigate = useNavigate();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const handleCardClick = () => {
     navigate(`/pets/${cardData.id}`);
+  };
+
+  const handlePhotoClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (cardData.photos && cardData.photos.length > 0) {
+      setLightboxOpen(true);
+    }
   };
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
@@ -63,11 +73,16 @@ export function CardElement({ cardData }: CardElementProps) {
         }}
         onClick={handleCardClick}
       >
-        <PetPhoto
-          photos={cardData.photos}
-          alt={cardData.name}
-          sx={{ height: 200, width: "100%", objectFit: "cover" }}
-        />
+        <Box
+          onClick={handlePhotoClick}
+          sx={{ cursor: "pointer" }}
+        >
+          <PetPhoto
+            photos={cardData.photos}
+            alt={cardData.name}
+            sx={{ height: 200, width: "100%", objectFit: "cover" }}
+          />
+        </Box>
 
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
@@ -131,6 +146,13 @@ export function CardElement({ cardData }: CardElementProps) {
           </Box>
         </CardContent>
       </Card>
+
+      <PhotoLightbox
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        photos={cardData.photos || []}
+        petName={cardData.name}
+      />
     </section>
   );
 }
