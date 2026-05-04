@@ -480,6 +480,17 @@ export function ProfilePage() {
                     />
                   </Grid>
                 )}
+                {isVolunteer && (
+                  <Grid item xs={12} sm={6}>
+                    <ActionTile
+                      icon={<Person />}
+                      title="Мой профиль волонтера"
+                      description="Просмотреть и редактировать профиль"
+                      onClick={() => navigate(`/volunteers/${userId}`)}
+                      color="success.main"
+                    />
+                  </Grid>
+                )}
                 <Grid item xs={12} sm={6}>
                   <ActionTile
                     icon={<Bookmark />}

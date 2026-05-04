@@ -44,6 +44,8 @@ import { helpStatusMessages } from "../../utils/helpStatusMessages";
 import { authSelectors } from "../../modules/auth/authSlice";
 import { useSelector } from "react-redux";
 import type { AppState } from "../../shared/redux";
+import { PetPhoto } from "../../shared/components/PetPhoto";
+import type { Photo } from "../../modules/pets/petsSlice";
 
 // Аватар волонтёра — всегда из public-папки
 const VOLUNTEER_AVATAR_URL = "/Manya-690x460-406558120.jpg";
@@ -150,6 +152,7 @@ function PetCard({
     isVaccinated: boolean;
     city?: string;
     helpStatus: string;
+    photos?: Photo[];
   };
   onClick: () => void;
 }) {
@@ -175,11 +178,19 @@ function PetCard({
         sx={{
           height: 140,
           bgcolor: "action.hover",
-          backgroundImage: "url(/1e7b92b6bc9796f0a7d78b9e386b870d.jpg)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
         }}
-      />
+      >
+        <PetPhoto
+          photos={pet.photos}
+          alt={pet.name}
+          sx={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+          }}
+        />
+      </Box>
       <Box sx={{ p: 2 }}>
         <Stack
           direction="row"
@@ -572,27 +583,6 @@ export function VolunteerDetailPage() {
                   Напишите, чтобы узнать о подопечных или предложить помощь
                 </Typography>
                 <Stack spacing={1.25}>
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    size="large"
-                    startIcon={<Send />}
-                    sx={{
-                      py: 1.25,
-                      bgcolor: "white",
-                      color: "primary.dark",
-                      fontWeight: 700,
-                      textTransform: "none",
-                      borderRadius: 2,
-                      boxShadow: "none",
-                      "&:hover": {
-                        bgcolor: "rgba(255,255,255,0.92)",
-                        boxShadow: "none",
-                      },
-                    }}
-                  >
-                    Написать
-                  </Button>
                   <Button
                     variant="outlined"
                     fullWidth

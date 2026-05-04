@@ -40,6 +40,7 @@ import { useSelector } from "react-redux";
 import type { AppState } from "../../shared/redux";
 import { toast } from "react-toastify";
 import { uploadPetPhotos } from "../../modules/files/api";
+import { extractApiErrors, mapApiErrorsToFormErrors } from "../../utils/apiErrorUtils";
 
 type FormData = {
   name: string;
@@ -258,7 +259,18 @@ export function CreatePetPage() {
         setCreatedPetId(petId);
         setActiveStep((prev) => Math.min(prev + 1, steps.length - 1));
       } catch (error) {
-        toast.error("Ошибка при создании карточки питомца");
+        // Обработка ошибок валидации от API
+        const formErrors = mapApiErrorsToFormErrors(error);
+        if (Object.keys(formErrors).length > 0) {
+          setErrors(formErrors);
+          // Показываем toast с первой ошибкой
+          const firstError = Object.values(formErrors)[0];
+          toast.error(firstError);
+        } else {
+          // Если нет ошибок формы, показываем общее сообщение
+          const errorMessages = extractApiErrors(error);
+          errorMessages.forEach((msg) => toast.error(msg));
+        }
         console.error(error);
       }
     } else {
