@@ -8,11 +8,8 @@ export type Requisites = {
   title: string;
   description: string;
 };
-export type Path = {
-  path: string;
-};
 export type PathToStorage = {
-  path: Path;
+  path: string;
 };
 export type Photo = {
   pathToStorage: PathToStorage;

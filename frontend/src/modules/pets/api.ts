@@ -20,7 +20,38 @@ export const petsApi = baseApi.injectEndpoints({
         url: `volunteers/pets/${petId}`,
       }),
     }),
+    addPet: builder.mutation<
+      string,
+      {
+        volunteerId: string;
+        name: string;
+        description: string;
+        speciesId: string;
+        breedId: string;
+        colour: string;
+        healthInformation: string;
+        address: {
+          country: string;
+          city: string;
+          street: string;
+          zipCode: string;
+        };
+        weight: number;
+        height: number;
+        ownersPhoneNumber: string;
+        castration: boolean;
+        birthday: string;
+        isVaccinated: boolean;
+        helpStatus: number;
+      }
+    >({
+      query: ({ volunteerId, ...body }) => ({
+        url: `volunteers/${volunteerId}/pet`,
+        method: "POST",
+        body,
+      }),
+    }),
   }),
 });
 
-export const { useGetPetsQuery, useGetPetByIdQuery } = petsApi;
+export const { useGetPetsQuery, useGetPetByIdQuery, useAddPetMutation } = petsApi;

@@ -1,12 +1,12 @@
 import { useEffect, type PropsWithChildren } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "./redux";
-import { authSelectors, type Role } from "../modules/auth/authSlice";
+import { authSelectors } from "../modules/auth/authSlice";
 import { useAuthInit } from "./useAuthInit";
 import { CircularProgress } from "@mui/material";
 
 type Props = {
-  roles: Role[];
+  roles: string[];
 } & PropsWithChildren;
 
 const selectors = authSelectors;
@@ -39,7 +39,7 @@ export function ProtectedRoute({ children, roles }: Props) {
   ]);
 
   if (!isReady || !isInitialized) {
-    <CircularProgress size="3rem" />;
+    return <CircularProgress size="3rem" />;
   }
 
   if (isAuthenticated && hasRequiredRole) {

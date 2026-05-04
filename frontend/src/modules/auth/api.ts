@@ -1,12 +1,11 @@
-import { baseApi } from "../../shared/baseApi";
+import { baseApi, baseQuery } from "../../shared/baseApi";
 import type { Envelope } from "../../shared/models/Envelope";
-import type { Role } from "./authSlice";
 
 export type LoginResponse = {
   accessToken: string;
   userId: string;
   email: string;
-  roles: Role[];
+  roles: string[];
 };
 
 export const authApi = baseApi.injectEndpoints({
@@ -31,7 +30,16 @@ export const authApi = baseApi.injectEndpoints({
         method: "POST",
       }),
     }),
+    logout: builder.mutation<void, void>({
+      query: () => ({
+        url: "account/logout",
+        method: "POST",
+      }),
+      extraOptions: {
+        skipRefresh: true,
+      },
+    }),
   }),
 });
 
-export const { useLoginMutation, useRegistrarionMutation } = authApi;
+export const { useLoginMutation, useRegistrarionMutation, useLogoutMutation } = authApi;

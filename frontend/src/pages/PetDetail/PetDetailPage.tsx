@@ -39,6 +39,7 @@ import { helpStatusMessages } from "../../utils/helpStatusMessages";
 import { renderErrorState } from "../../utils/errorPageWithState";
 import { useFavorites } from "../../shared/hooks/useFavorites";
 import { toast } from "react-toastify";
+import { PetPhoto } from "../../shared/components/PetPhoto";
 
 export function PetDetailPage() {
   const { petId } = useParams<{ petId: string }>();
@@ -171,6 +172,38 @@ export function PetDetailPage() {
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
+          {pet.photos && pet.photos.length > 0 && (
+            <Paper elevation={2} sx={{ borderRadius: 3, mb: 3 }}>
+              <Box className="p-6">
+                <Typography variant="h5" className="font-bold mb-4">
+                  Фотографии
+                </Typography>
+                <Box className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {pet.photos.map((photo, index) => (
+                    <Box
+                      key={index}
+                      sx={{
+                        aspectRatio: "1",
+                        borderRadius: 2,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <PetPhoto
+                        photos={[photo]}
+                        alt={`${pet.name} ${index + 1}`}
+                        sx={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            </Paper>
+          )}
+
           <Paper elevation={2} sx={{ borderRadius: 3, mb: 3 }}>
             <Box className="p-6">
               <Typography variant="h5" className="font-bold mb-4">

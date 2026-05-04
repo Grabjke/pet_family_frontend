@@ -9,6 +9,8 @@ import { HelpPage } from "../pages/Help/HelpPage";
 import { VolunteersPage } from "../pages/Volunteers/VolunteersPage";
 import { VolunteerDetailPage } from "../pages/Volunteers/VolunteerDetailPage";
 import { FavoritesPage } from "../pages/Favorites/FavoritesPage";
+import { CreatePetPage } from "../pages/CreatePet/CreatePetPage";
+import { ProfilePage } from "../pages/Profile/ProfilePage";
 
 export const router = createBrowserRouter([
   {
@@ -26,7 +28,7 @@ export const router = createBrowserRouter([
       {
         path: "/",
         element: (
-          <ProtectedRoute roles={["admin", "participant"]}>
+          <ProtectedRoute roles={["admin", "participant", "volunteer"]}>
             <MainPage />
           </ProtectedRoute>
         ),
@@ -34,7 +36,7 @@ export const router = createBrowserRouter([
       {
         path: "pets/:petId",
         element: (
-          <ProtectedRoute roles={["admin", "participant"]}>
+          <ProtectedRoute roles={["admin", "participant", "volunteer"]}>
             <PetDetailPage />
           </ProtectedRoute>
         ),
@@ -54,6 +56,22 @@ export const router = createBrowserRouter([
       {
         path: "favorites",
         element: <FavoritesPage />,
+      },
+      {
+        path: "create-pet",
+        element: (
+          <ProtectedRoute roles={["volunteer"]}>
+            <CreatePetPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "profile",
+        element: (
+          <ProtectedRoute roles={["admin", "participant", "volunteer"]}>
+            <ProfilePage />
+          </ProtectedRoute>
+        ),
       },
     ],
     errorElement: <div>Страница не найдена</div>,

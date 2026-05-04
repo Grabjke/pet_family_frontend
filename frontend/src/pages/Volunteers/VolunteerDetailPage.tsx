@@ -33,17 +33,26 @@ import {
   Pets,
   CheckCircle,
   Cancel,
+  Add,
 } from "@mui/icons-material";
 import { renderErrorState } from "../../utils/errorPageWithState";
 import type { SocialNetwork } from "../../modules/volunteers/volunteersSlice";
 import { useFavorites } from "../../shared/hooks/useFavorites";
 import { toast } from "react-toastify";
 import { helpStatusMessages } from "../../utils/helpStatusMessages";
+import { authSelectors } from "../../modules/auth/authSlice";
+import { useSelector } from "react-redux";
+import type { AppState } from "../../shared/redux";
 
 export function VolunteerDetailPage() {
   const { volunteerId } = useParams<{ volunteerId: string }>();
   const navigate = useNavigate();
   const { isFavorite, toggleFavorite } = useFavorites();
+
+  const userId = useSelector((state: AppState) => authSelectors.selectCurrentUserId(state));
+  const roles = useSelector((state: AppState) => authSelectors.selectCurrentUserRoles(state));
+
+  const isOwnProfile = userId === volunteerId && roles.includes("volunteer");
 
   const {
     data: volunteerData,
@@ -248,9 +257,26 @@ export function VolunteerDetailPage() {
 
           <Paper elevation={2} sx={{ borderRadius: 3, mb: 3 }}>
             <Box className="p-6">
-              <Typography variant="h5" className="font-bold mb-4">
-                Животные под опекой
-              </Typography>
+              <Box className="flex items-center justify-between mb-4">
+                <Typography variant="h5" className="font-bold">
+                  Животные под опекой
+                </Typography>
+                {isOwnProfile && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<Add />}
+                    onClick={() => navigate("/create-pet")}
+                    sx={{
+                      borderRadius: 2,
+                      textTransform: "none",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Добавить питомца
+                  </Button>
+                )}
+              </Box>
               {isPetsLoading ? (
                 <Box className="flex items-center justify-center py-8">
                   <CircularProgress size={40} />

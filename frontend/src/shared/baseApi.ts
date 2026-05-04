@@ -29,9 +29,13 @@ const baseQueryWithRefresh: typeof baseQuery = async (
   extraOptions,
 ) => {
   await mutex.waitForUnlock();
+
+  // Check if this request should skip refresh
+  const shouldSkipRefresh = (extraOptions as { skipRefresh?: boolean })?.skipRefresh === true;
+
   let result = await baseQuery(args, api, extraOptions);
 
-  if (result.error && result.error.status === 401) {
+  if (!shouldSkipRefresh && result.error && result.error.status === 401) {
     if (!mutex.isLocked()) {
       const release = await mutex.acquire();
 

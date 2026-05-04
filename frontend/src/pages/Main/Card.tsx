@@ -1,6 +1,5 @@
 import {
   Card,
-  CardMedia,
   CardContent,
   Typography,
   Button,
@@ -18,6 +17,7 @@ import { helpStatusMessages } from "../../utils/helpStatusMessages";
 import { useNavigate } from "react-router-dom";
 import { useFavorites } from "../../shared/hooks/useFavorites";
 import { toast } from "react-toastify";
+import { PetPhoto } from "../../shared/components/PetPhoto";
 
 interface CardElementProps {
   cardData: Pet;
@@ -63,10 +63,10 @@ export function CardElement({ cardData }: CardElementProps) {
         }}
         onClick={handleCardClick}
       >
-        <CardMedia
-          sx={{ height: 200 }}
-          image="/public/1e7b92b6bc9796f0a7d78b9e386b870d.jpg"
-          title="Барсик"
+        <PetPhoto
+          photos={cardData.photos}
+          alt={cardData.name}
+          sx={{ height: 200, width: "100%", objectFit: "cover" }}
         />
 
         <CardContent sx={{ p: 3 }}>

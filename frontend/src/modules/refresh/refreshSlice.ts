@@ -1,10 +1,7 @@
-export type Role = {
-  name: string;
-};
 export type Response = {
   accessToken: string;
   refreshToken: string;
-  roles: Role[];
+  roles: string[];
   email: string;
   userId: string;
 };

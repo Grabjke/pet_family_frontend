@@ -1,11 +1,11 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-export type Role = "admin" | "participant";
+export type Role = "admin" | "participant" | "volunteer" | string;
 
 export type AuthState = {
   accessToken: string | undefined;
   userId: string | undefined;
-  roles: Role[];
+  roles: string[];
   isAuthenticated: boolean;
   isInitialized: boolean;
   fetchStatus: "idle" | "loading" | "succeeded" | "failed";
@@ -45,7 +45,7 @@ export const authSlice = createSlice({
       }: PayloadAction<{
         accessToken: string;
         userId: string;
-        roles: Role[];
+        roles: string[];
       }>
     ) => {
       state.accessToken = payload.accessToken;

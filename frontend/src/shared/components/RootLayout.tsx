@@ -5,6 +5,7 @@ import { Footer } from "./Footer";
 import { Menu } from "./Menu";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { AuthInit } from "./AuthInit";
 
 export type Props = {
   children: React.ReactNode;
@@ -12,16 +13,18 @@ export type Props = {
 
 export function RootLayout() {
   return (
-    <div className="h-screen flex flex-col">
-      <Header />
-      <div className="flex flex-col flex-1 px-2 sm:px-8 py-2 sm:py-5">
-        <Menu />
-        <ContentBlock>
-          <Outlet />
-          <ToastContainer />
-        </ContentBlock>
+    <AuthInit>
+      <div className="h-screen flex flex-col">
+        <Header />
+        <div className="flex flex-col flex-1 px-2 sm:px-8 py-2 sm:py-5">
+          <Menu />
+          <ContentBlock>
+            <Outlet />
+            <ToastContainer />
+          </ContentBlock>
+        </div>
+        <Footer />
       </div>
-      <Footer />
-    </div>
+    </AuthInit>
   );
 }
