@@ -1,6 +1,15 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useGetVolunteerByIdQuery } from "../../modules/volunteers/api";
+import { useState, useEffect } from "react";
+import {
+  useGetVolunteerByIdQuery,
+  useSoftDeletePetMutation,
+  useUpdateMainInfoPetMutation,
+} from "../../modules/volunteers/api";
 import { useGetPetsQuery } from "../../modules/pets/api";
+import { useGetSpeciesQuery } from "../../modules/species/api";
+import { useGetBreedsBySpeciesIdQuery } from "../../modules/breed/api";
+import type { Species } from "../../modules/species/speciesSlice";
+import type { Breed } from "../../modules/breed/breedSlice";
 import {
   Box,
   Typography,
@@ -14,6 +23,19 @@ import {
   Grid,
   Stack,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Menu,
+  MenuItem,
+  TextField,
+  Select,
+  MenuItem as SelectMenuItem,
+  FormControl,
+  InputLabel,
+  Switch,
+  FormControlLabel,
 } from "@mui/material";
 import {
   Person,
@@ -35,6 +57,9 @@ import {
   ArrowBack,
   ArrowForward,
   LocationOn,
+  Delete,
+  MoreVert,
+  Edit,
 } from "@mui/icons-material";
 import { renderErrorState } from "../../utils/errorPageWithState";
 import type { SocialNetwork } from "../../modules/volunteers/volunteersSlice";
@@ -145,6 +170,13 @@ function InfoRow({
 function PetCard({
   pet,
   onClick,
+  onDelete,
+  onEdit,
+  isOwnProfile,
+  menuOpen,
+  onMenuOpen,
+  onMenuClose,
+  menuAnchorEl,
 }: {
   pet: {
     id: string;
@@ -155,7 +187,31 @@ function PetCard({
     photos?: Photo[];
   };
   onClick: () => void;
+  onDelete: () => void;
+  onEdit: () => void;
+  isOwnProfile: boolean;
+  menuOpen: boolean;
+  onMenuOpen: (e: React.MouseEvent<HTMLElement>) => void;
+  onMenuClose: () => void;
+  menuAnchorEl: HTMLElement | null;
 }) {
+  const handleMenuClick = (e: React.MouseEvent<HTMLElement>) => {
+    e.stopPropagation();
+    onMenuOpen(e);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onMenuClose();
+    onDelete();
+  };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onMenuClose();
+    onEdit();
+  };
+
   return (
     <Paper
       elevation={0}
@@ -167,6 +223,7 @@ function PetCard({
         overflow: "hidden",
         cursor: "pointer",
         transition: "all 0.2s ease",
+        position: "relative",
         "&:hover": {
           transform: "translateY(-2px)",
           borderColor: "primary.light",
@@ -174,6 +231,45 @@ function PetCard({
         },
       }}
     >
+      {isOwnProfile && (
+        <IconButton
+          onClick={handleMenuClick}
+          sx={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            bgcolor: "background.paper",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+            zIndex: 1,
+            "&:hover": { bgcolor: "action.hover" },
+          }}
+        >
+          <MoreVert fontSize="small" />
+        </IconButton>
+      )}
+      <Menu
+        anchorEl={menuAnchorEl}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+        open={menuOpen}
+        onClose={onMenuClose}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <MenuItem onClick={handleEdit}>
+          <Edit sx={{ mr: 1, fontSize: 20 }} />
+          Редактировать
+        </MenuItem>
+        <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>
+          <Delete sx={{ mr: 1, fontSize: 20 }} />
+          Удалить
+        </MenuItem>
+      </Menu>
       <Box
         sx={{
           height: 140,
@@ -251,6 +347,44 @@ export function VolunteerDetailPage() {
   const navigate = useNavigate();
   const { isFavorite, toggleFavorite } = useFavorites();
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [petToDelete, setPetToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [menuPetId, setMenuPetId] = useState<string | null>(null);
+
+  const [editForm, setEditForm] = useState({
+    name: "",
+    description: "",
+    speciesId: "",
+    breedId: "",
+    colour: "",
+    healthInformation: "",
+    street: "",
+    city: "",
+    country: "",
+    zipCode: "",
+    weight: 0,
+    height: 0,
+    ownersPhoneNumber: "",
+    castration: false,
+    birthday: "",
+    isVaccinated: false,
+    helpStatus: 1,
+  });
+
+  const { data: speciesData } = useGetSpeciesQuery({ page: 1, pageSize: 100 });
+  const species = speciesData?.result?.items || [];
+
+  const { data: breedsData } = useGetBreedsBySpeciesIdQuery(
+    { id: editForm.speciesId, page: 1, pageSize: 100 },
+    { skip: !editForm.speciesId },
+  );
+  const breeds = breedsData?.result?.items || [];
+
   const userId = useSelector((state: AppState) =>
     authSelectors.selectCurrentUserId(state),
   );
@@ -258,7 +392,23 @@ export function VolunteerDetailPage() {
     authSelectors.selectCurrentUserRoles(state),
   );
 
-  const isOwnProfile = userId === volunteerId && roles.includes("volunteer");
+  // Считаем профиль своим, если userId совпадает с volunteerId.
+  // Проверку роли убираем — раз userId == volunteerId, это и есть владелец.
+  const isOwnProfile = !!userId && userId === volunteerId;
+
+  // 🔍 ВРЕМЕННЫЙ ЛОГ — посмотрите в консоли браузера, что приходит.
+  // После того, как починим проблему, эту useEffect можно удалить.
+  useEffect(() => {
+    console.log("[VolunteerDetailPage] auth debug:", {
+      userId,
+      volunteerId,
+      roles,
+      isOwnProfile,
+      userIdType: typeof userId,
+      volunteerIdType: typeof volunteerId,
+      areEqual: userId === volunteerId,
+    });
+  }, [userId, volunteerId, roles, isOwnProfile]);
 
   const {
     data: volunteerData,
@@ -274,6 +424,9 @@ export function VolunteerDetailPage() {
     },
     { skip: !volunteerId },
   );
+
+  const [softDeletePet] = useSoftDeletePetMutation();
+  const [updateMainInfoPet] = useUpdateMainInfoPetMutation();
 
   const volunteer = volunteerData?.result;
   const pets = petsData?.result?.items || [];
@@ -327,6 +480,103 @@ export function VolunteerDetailPage() {
     isAdded
       ? toast.success("Добавлено в избранное")
       : toast.info("Удалено из избранного");
+  };
+
+  const handleDeletePetClick = (pet: { id: string; name: string }) => {
+    setPetToDelete(pet);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleEditPetClick = (pet: any) => {
+    setMenuPetId(pet.id);
+    setEditForm({
+      name: pet.name,
+      description: pet.description,
+      speciesId: pet.speciesId,
+      breedId: pet.breedId,
+      colour: pet.colour,
+      healthInformation: pet.healthInformation,
+      street: pet.street,
+      city: pet.city,
+      country: pet.country,
+      zipCode: pet.zipCode,
+      weight: pet.weight,
+      height: pet.height,
+      ownersPhoneNumber: pet.ownersPhoneNumber,
+      castration: pet.castration,
+      birthday: pet.birthday,
+      isVaccinated: pet.isVaccinated,
+      helpStatus: parseInt(pet.helpStatus) || 1,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleMenuOpen = (e: React.MouseEvent<HTMLElement>, petId: string) => {
+    setMenuAnchorEl(e.currentTarget);
+    setMenuPetId(petId);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+    setMenuPetId(null);
+  };
+
+  const handleDeletePetConfirm = async () => {
+    if (!petToDelete || !volunteerId) return;
+
+    try {
+      await softDeletePet({ volunteerId, petId: petToDelete.id }).unwrap();
+      toast.success(`Питомец "${petToDelete.name}" удален`);
+      setDeleteDialogOpen(false);
+      setPetToDelete(null);
+    } catch (error) {
+      toast.error("Не удалось удалить питомца");
+    }
+  };
+
+  const handleDeletePetCancel = () => {
+    setDeleteDialogOpen(false);
+    setPetToDelete(null);
+  };
+
+  const handleEditPetConfirm = async () => {
+    if (!menuPetId || !volunteerId) return;
+
+    try {
+      await updateMainInfoPet({
+        volunteerId,
+        petId: menuPetId,
+        name: editForm.name,
+        description: editForm.description,
+        speciesId: editForm.speciesId,
+        breedId: editForm.breedId,
+        colour: editForm.colour,
+        healthInformation: editForm.healthInformation,
+        address: {
+          street: editForm.street,
+          city: editForm.city,
+          country: editForm.country,
+          zipCode: editForm.zipCode,
+        },
+        weight: editForm.weight,
+        height: editForm.height,
+        ownersPhoneNumber: editForm.ownersPhoneNumber,
+        castration: editForm.castration,
+        birthday: editForm.birthday,
+        isVaccinated: editForm.isVaccinated,
+        helpStatus: editForm.helpStatus,
+      }).unwrap();
+      toast.success("Информация о питомце обновлена");
+      setEditDialogOpen(false);
+      handleMenuClose();
+    } catch (error) {
+      toast.error("Не удалось обновить информацию о питомце");
+    }
+  };
+
+  const handleEditPetCancel = () => {
+    setEditDialogOpen(false);
+    handleMenuClose();
   };
 
   const getSocialMeta = (name: string) =>
@@ -423,7 +673,7 @@ export function VolunteerDetailPage() {
 
       <Grid container spacing={3}>
         {/* Левая колонка */}
-        <Grid item xs={12} lg={8}>
+        <Grid size={{ xs: 12, lg: 8 }}>
           <Stack spacing={3}>
             {/* О волонтёре */}
             <Section title="О волонтёре">
@@ -549,6 +799,17 @@ export function VolunteerDetailPage() {
                       <PetCard
                         pet={pet}
                         onClick={() => navigate(`/pets/${pet.id}`)}
+                        onDelete={() =>
+                          handleDeletePetClick({ id: pet.id, name: pet.name })
+                        }
+                        onEdit={() => handleEditPetClick(pet)}
+                        isOwnProfile={isOwnProfile}
+                        menuOpen={menuPetId === pet.id && Boolean(menuAnchorEl)}
+                        onMenuOpen={(e) => handleMenuOpen(e, pet.id)}
+                        onMenuClose={handleMenuClose}
+                        menuAnchorEl={
+                          menuPetId === pet.id ? menuAnchorEl : null
+                        }
                       />
                     </Grid>
                   ))}
@@ -685,6 +946,324 @@ export function VolunteerDetailPage() {
           </Box>
         </Grid>
       </Grid>
+
+      {/* Диалог подтверждения удаления */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeletePetCancel}
+        PaperProps={{
+          sx: { borderRadius: 3, maxWidth: 400 },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Удалить питомца?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Вы уверены, что хотите удалить питомца "{petToDelete?.name}"? Это
+            действие нельзя отменить.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5, pt: 0 }}>
+          <Button
+            onClick={handleDeletePetCancel}
+            sx={{ borderRadius: 2, textTransform: "none" }}
+          >
+            Отмена
+          </Button>
+          <Button
+            onClick={handleDeletePetConfirm}
+            variant="contained"
+            color="error"
+            sx={{ borderRadius: 2, textTransform: "none" }}
+          >
+            Удалить
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Диалог редактирования питомца */}
+      <Dialog
+        open={editDialogOpen}
+        onClose={handleEditPetCancel}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Редактировать питомца</DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                fullWidth
+                label="Имя питомца"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                required
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12 }}>
+              <FormControl fullWidth required>
+                <InputLabel>Вид животного</InputLabel>
+                <Select
+                  value={editForm.speciesId}
+                  label="Вид животного"
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      speciesId: e.target.value,
+                      breedId: "",
+                    })
+                  }
+                >
+                  {species.map((s) => (
+                    <MenuItem key={s.id} value={s.id}>
+                      {s.title}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12 }}>
+              <FormControl fullWidth required disabled={!editForm.speciesId}>
+                <InputLabel>Порода</InputLabel>
+                <Select
+                  value={editForm.breedId}
+                  label="Порода"
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, breedId: e.target.value })
+                  }
+                >
+                  {breeds.map((b) => (
+                    <MenuItem key={b.id} value={b.id}>
+                      {b.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                label="Окрас"
+                value={editForm.colour}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, colour: e.target.value })
+                }
+                required
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Описание"
+                value={editForm.description}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, description: e.target.value })
+                }
+                required
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                multiline
+                rows={2}
+                label="Информация о здоровье"
+                value={editForm.healthInformation}
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    healthInformation: e.target.value,
+                  })
+                }
+                required
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Вес (кг)"
+                value={editForm.weight}
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    weight: parseFloat(e.target.value) || 0,
+                  })
+                }
+                required
+                slotProps={{ htmlInput: { min: 0, step: 0.1 } }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Рост (см)"
+                value={editForm.height}
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    height: parseInt(e.target.value) || 0,
+                  })
+                }
+                required
+                slotProps={{ htmlInput: { min: 0 } }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <TextField
+                fullWidth
+                type="date"
+                label="Дата рождения"
+                value={editForm.birthday}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, birthday: e.target.value })
+                }
+                required
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={editForm.castration}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, castration: e.target.checked })
+                    }
+                  />
+                }
+                label="Кастрирован/Стерилизован"
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={editForm.isVaccinated}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, isVaccinated: e.target.checked })
+                    }
+                  />
+                }
+                label="Вакцинирован"
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12 }}>
+              <FormControl fullWidth>
+                <InputLabel>Статус</InputLabel>
+                <Select
+                  value={editForm.helpStatus}
+                  label="Статус"
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      helpStatus: Number(e.target.value),
+                    })
+                  }
+                >
+                  <MenuItem value={1}>Нужна медицинская помощь</MenuItem>
+                  <MenuItem value={2}>Нужен дом</MenuItem>
+                  <MenuItem value={3}>Находится в добрых руках</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                fullWidth
+                label="Страна"
+                value={editForm.country}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, country: e.target.value })
+                }
+                required
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                fullWidth
+                label="Город"
+                value={editForm.city}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, city: e.target.value })
+                }
+                required
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                fullWidth
+                label="Улица"
+                value={editForm.street}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, street: e.target.value })
+                }
+                required
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                fullWidth
+                label="Почтовый индекс"
+                value={editForm.zipCode}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, zipCode: e.target.value })
+                }
+                required
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                label="Телефон владельца"
+                value={editForm.ownersPhoneNumber}
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    ownersPhoneNumber: e.target.value,
+                  })
+                }
+                required
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5, pt: 0 }}>
+          <Button
+            onClick={handleEditPetCancel}
+            sx={{ borderRadius: 2, textTransform: "none" }}
+          >
+            Отмена
+          </Button>
+          <Button
+            onClick={handleEditPetConfirm}
+            variant="contained"
+            sx={{ borderRadius: 2, textTransform: "none" }}
+          >
+            Сохранить
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

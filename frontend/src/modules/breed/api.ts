@@ -18,4 +18,4 @@ export const breedApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useGetBreedsQuery } = breedApi;
+export const { useGetBreedsQuery, useGetBreedsQuery: useGetBreedsBySpeciesIdQuery } = breedApi;

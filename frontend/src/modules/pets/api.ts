@@ -14,6 +14,7 @@ export const petsApi = baseApi.injectEndpoints({
         url: "volunteers/pets",
         params: cleanQueryParams(params),
       }),
+      providesTags: ["Pet"],
     }),
     getPetById: builder.query<Envelope<Pet>, string>({
       query: (petId) => ({
