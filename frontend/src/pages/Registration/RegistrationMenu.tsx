@@ -51,7 +51,6 @@ export default function TabsWrappedLabel() {
             }}
           >
             <Tab value="two" label="Регистрация пользователя" />
-            <Tab value="three" label="Регистрация волонтера" />
           </Tabs>
 
           <Box sx={{ p: 3 }}>{renderTabContent()}</Box>
