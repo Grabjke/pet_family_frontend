@@ -8,6 +8,9 @@ export const refreshApi = baseApi.injectEndpoints({
         url: "/account/refresh",
         method: "POST",
       }),
+      extraOptions: {
+        skipRefresh: true,
+      },
     }),
   }),
 });

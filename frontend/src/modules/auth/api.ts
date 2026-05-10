@@ -19,6 +19,9 @@ export const authApi = baseApi.injectEndpoints({
         body: { email, password },
         method: "POST",
       }),
+      extraOptions: {
+        skipRefresh: true,
+      },
     }),
     registrarion: builder.mutation<
       string,
@@ -29,6 +32,9 @@ export const authApi = baseApi.injectEndpoints({
         body: { userName, email, password },
         method: "POST",
       }),
+      extraOptions: {
+        skipRefresh: true,
+      },
     }),
     logout: builder.mutation<void, void>({
       query: () => ({
